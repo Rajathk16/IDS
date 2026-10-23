@@ -1,0 +1,75 @@
+{
+  "policies": [
+    {
+      "policy_id": "POL-001",
+      "name": "Critical Mirai Botnet Activity",
+      "enabled": true,
+      "attack_category": "Mirai",
+      "min_confidence": 0.6,
+      "severity": "CRITICAL",
+      "description": "Immediately flag Mirai greeth/greip/udpplain botnet traffic as CRITICAL."
+    },
+    {
+      "policy_id": "POL-002",
+      "name": "High Volume DDoS Flood",
+      "enabled": true,
+      "attack_category": "DDoS",
+      "min_confidence": 0.7,
+      "severity": "HIGH",
+      "description": "Elevate confirmed distributed denial of service attack floods to HIGH severity."
+    },
+    {
+      "policy_id": "POL-003",
+      "name": "Web & Command Injection Exploit",
+      "enabled": true,
+      "attack_category": "Web",
+      "min_confidence": 0.65,
+      "severity": "HIGH",
+      "description": "Flag SQLi, XSS, and remote command injection IoT attacks as HIGH severity."
+    },
+    {
+      "policy_id": "POL-004",
+      "name": "Reconnaissance & Port Scanning",
+      "enabled": true,
+      "attack_category": "Recon",
+      "min_confidence": 0.6,
+      "severity": "MEDIUM",
+      "description": "Flag port sweeps, host discovery, and vulnerability scans as MEDIUM severity."
+    },
+    {
+      "policy_id": "POL-005",
+      "name": "Denial of Service (DoS)",
+      "enabled": true,
+      "attack_category": "DoS",
+      "min_confidence": 0.6,
+      "severity": "MEDIUM",
+      "description": "Flag single-source DoS flooding as MEDIUM severity."
+    },
+    {
+      "policy_id": "POL-006",
+      "name": "Spoofing & Man-In-The-Middle",
+      "enabled": true,
+      "attack_category": "Spoofing",
+      "min_confidence": 0.6,
+      "severity": "MEDIUM",
+      "description": "Flag ARP spoofing and DNS cache poisoning as MEDIUM severity."
+    },
+    {
+      "policy_id": "POL-007",
+      "name": "Brute Force Password Guessing",
+      "enabled": true,
+      "attack_category": "BruteForce",
+      "min_confidence": 0.7,
+      "severity": "LOW",
+      "description": "Flag dictionary and brute force attempts on IoT credentials as LOW severity."
+    }
+  ],
+  "audit_log": [
+    {
+      "timestamp": "2026-10-23T13:55:27.215680Z",
+      "action": "INITIALIZE",
+      "policy_id": "SYSTEM",
+      "details": "Initialized default IoT network alert policies."
+    }
+  ]
+}

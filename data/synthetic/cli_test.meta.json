@@ -1,0 +1,7 @@
+{
+  "is_synthetic": true,
+  "generator": "src.data.synthetic.generate_synthetic_dataset",
+  "n_samples": 100,
+  "random_seed": 42,
+  "notice": "THIS IS SYNTHETIC TEST DATA EXCLUSIVELY FOR OFFLINE DEVELOPMENT. IT IS NOT THE REAL CICIOT2023 DATASET."
+}

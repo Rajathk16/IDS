@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Data and Artifacts (large raw CSV files shouldn't be committed)
+data/raw/*.csv
+data/processed/*.csv
+data/processed/*.parquet
+data/synthetic/*.csv
+!data/raw/README.md
+
+# Trained Models & SQLite DBs
+models/*.joblib
+models/*.pkl
+*.sqlite
+*.db
+
+# Logs and Run Results
+*.log
+results/plots/*.png
+results/metrics/*.json
+results/reports/*.md
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
