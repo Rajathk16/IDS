@@ -99,8 +99,15 @@ class PoliciesScreenWidget(Widget):
             )
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        self._select_policy_by_key(event.row_key.value)
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.row_key:
+            self._select_policy_by_key(event.row_key.value)
+
+    def _select_policy_by_key(self, key_str: str) -> None:
         try:
-            idx = int(event.row_key.value)
+            idx = int(key_str)
             if 0 <= idx < len(self._cached_policies):
                 p = self._cached_policies[idx]
                 self._selected_policy_id = p.policy_id

@@ -64,8 +64,10 @@ class IDSEngine:
             elif discovered["synthetic"]:
                 path = discovered["synthetic"][0]
             else:
-                # Generate a default synthetic dataset so beginner is never stuck!
-                path = self.generate_synthetic(n_samples=2000)
+                raise FileNotFoundError(
+                    "No CSV dataset found in data/raw/ or data/synthetic/. "
+                    "Please extract your CICIoT2023 dataset CSV file into data/raw/."
+                )
 
         return audit_dataset(path, max_rows_for_audit=max_rows)
 
@@ -89,7 +91,10 @@ class IDSEngine:
             elif discovered["synthetic"]:
                 path = discovered["synthetic"][0]
             else:
-                path = self.generate_synthetic(n_samples=3000)
+                raise FileNotFoundError(
+                    "No CSV dataset found in data/raw/ or data/synthetic/. "
+                    "Please extract your CICIoT2023 dataset CSV file into data/raw/."
+                )
 
         task = task_type or self.settings.default_task
         model = model_name or self.settings.default_model
@@ -111,15 +116,48 @@ class IDSEngine:
         self.active_model_bundle = bundle
         return bundle, run
 
-    def run_selector_comparison(self, data_path: Optional[Path] = None) -> Dict[str, Any]:
+    def run_selector_comparison(
+        self,
+        data_path: Optional[Path] = None,
+        task_type: Optional[str] = None,
+        model_name: Optional[str] = None,
+        n_features: Optional[int] = None,
+        sample_limit: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Run empirical feature selection comparison."""
         path = data_path or self._get_default_data_path()
-        return run_feature_selection_comparison(path, random_seed=self.settings.random_seed)
+        task = task_type or self.settings.default_task
+        model = model_name or self.settings.default_model
+        feats = n_features or self.settings.lrrc_max_features
+        limit = sample_limit or 5000
+        return run_feature_selection_comparison(
+            data_path=path,
+            task_type=task,
+            model_name=model,
+            n_features=feats,
+            sample_limit=limit,
+            random_seed=self.settings.random_seed
+        )
 
-    def run_imbalance_comparison(self, data_path: Optional[Path] = None) -> Dict[str, Any]:
+    def run_imbalance_comparison(
+        self,
+        data_path: Optional[Path] = None,
+        task_type: Optional[str] = None,
+        model_name: Optional[str] = None,
+        sample_limit: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Run class imbalance comparison experiment."""
         path = data_path or self._get_default_data_path()
-        return run_class_imbalance_comparison(path, random_seed=self.settings.random_seed)
+        task = task_type or self.settings.default_task
+        model = model_name or self.settings.default_model
+        limit = sample_limit or 5000
+        return run_class_imbalance_comparison(
+            data_path=path,
+            task_type=task,
+            model_name=model,
+            sample_limit=limit,
+            random_seed=self.settings.random_seed
+        )
 
     def predict_offline(
         self,
@@ -162,4 +200,7 @@ class IDSEngine:
             return discovered["raw"][0]
         if discovered["synthetic"]:
             return discovered["synthetic"][0]
-        return self.generate_synthetic(n_samples=2500)
+        raise FileNotFoundError(
+            "No CSV dataset found in data/raw/ or data/synthetic/. "
+            "Please extract your CICIoT2023 dataset CSV file into data/raw/."
+        )

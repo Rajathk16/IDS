@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Tuple
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
+from textual import work
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widget import Widget
 from textual.widgets import Input, Label, RichLog
 from src.core.engine import IDSEngine
+from src.core.events import TrainingRun
 from src.core.policies import get_policies
 from src.core.settings import get_settings
 
@@ -112,16 +115,51 @@ class ChatScreenWidget(Widget):
                 "### 🧭 DEVRAKSHAK Command & Query Directory\n\n"
                 "| Command | Description |\n"
                 "| :--- | :--- |\n"
+                "| `/train [task] [model]` | Train classifier via LRRC-FS in background (e.g. `/train multiclass dt`) |\n"
                 "| `/status` | Overview of system health, active datasets, models, and detection counts |\n"
                 "| `/audit` | Execute real-time schema audit on raw network flow CSV data |\n"
+                "| `/discover` | Discover available authentic raw and synthetic test datasets |\n"
+                "| `/synthetic [samples]` | Generate synthetic offline CICIoT2023 test data |\n"
+                "| `/compare` | Run empirical comparison across feature selection algorithms |\n"
                 "| `/lrrc` | Deep mathematical breakdown of the LRRC-FS feature selection formula |\n"
                 "| `/models` | Architectural comparison of supported classifiers (RF, DT, ET, HistGB) |\n"
                 "| `/metrics` | Explanation of Macro F1, False Positive Rate, and latency trade-offs |\n"
                 "| `/runs` | List the latest training runs and evaluation metrics |\n"
                 "| `/policies` | Review active alert threshold rules and severity mapping |\n"
                 "| `/imbalance` | Why high accuracy is deceptive on imbalanced IoT traffic |\n"
-                "| `/monitor` | Summarize offline detection metrics and attack distribution |"
+                "| `/monitor` | Summarize offline detection metrics and attack distribution |\n"
+                "| `/clear` | Clear terminal conversation screen and reset display |"
             ))
+
+        elif q in ("/clear", "clear", "cls"):
+            log.clear()
+            log.write(DEVRAKSHAK_BANNER)
+            log.write(WELCOME_HEADER)
+
+        elif q.startswith("/train") or q.startswith("train"):
+            self._handle_chat_train(query, log)
+
+        elif q.startswith("/synthetic") or q.startswith("synthetic") or q.startswith("/generate"):
+            self._handle_chat_synthetic(query, log)
+
+        elif q in ("/discover", "discover", "/datasets", "datasets"):
+            ds = self.engine.discover_datasets()
+            table = Table(title="Discovered Dataset Files", show_header=True, header_style="bold magenta")
+            table.add_column("Type", style="cyan")
+            table.add_column("Filename", style="white")
+            table.add_column("Size", justify="right", style="green")
+            for f in ds["raw"]:
+                table.add_row("Official Raw", f.name, f"{f.stat().st_size / (1024*1024):.2f} MB")
+            for f in ds["synthetic"]:
+                table.add_row("Synthetic", f.name, f"{f.stat().st_size / (1024*1024):.2f} MB")
+            if not ds["raw"] and not ds["synthetic"]:
+                log.write("[yellow]No dataset files found in data/raw or data/synthetic. Use `/synthetic` to generate test data.[/yellow]")
+            else:
+                log.write(table)
+
+        elif q in ("/compare", "compare", "/compare-selectors", "compare-selectors"):
+            log.write("[bold green]DEVRAKSHAK Assistant:[/bold green] Initiating feature selector comparison in background...")
+            self._start_chat_compare_worker()
 
         elif q in ("/audit", "audit"):
             log.write("[bold green]DEVRAKSHAK Assistant:[/bold green] Executing dataset audit...")
@@ -247,10 +285,117 @@ class ChatScreenWidget(Widget):
             log.write(Markdown(
                 f"I processed your query: *'{query}'*.\n\n"
                 "Try one of the specialized commands:\n"
+                "- `/train` - train classifier with LRRC-FS feature selection\n"
                 "- `/help` - view all commands\n"
                 "- `/audit` - inspect dataset schema and quality\n"
-                "- `/lrrc` - understand the LRRC-FS mathematical formula\n"
                 "- `/status` - check system datasets and detection counts\n"
+                "- `/discover` - view available dataset files\n"
+                "- `/synthetic` - generate test dataset\n"
+                "- `/lrrc` - understand the LRRC-FS mathematical formula\n"
                 "- `/models` - compare classifier architectures\n"
                 "- `/metrics` - learn why Macro F1 matters more than Accuracy"
             ))
+
+    def _handle_chat_train(self, query: str, log: RichLog) -> None:
+        parts = query.strip().split()
+        task = self.engine.settings.default_task
+        model = self.engine.settings.default_model
+
+        for p in parts[1:]:
+            p_low = p.lower()
+            if p_low in ("binary", "multiclass"):
+                task = p_low
+            elif p_low in ("decision_tree", "dt"):
+                model = "decision_tree"
+            elif p_low in ("random_forest", "rf"):
+                model = "random_forest"
+            elif p_low in ("extra_trees", "et"):
+                model = "extra_trees"
+            elif p_low in ("gradient_boosting", "hist_gb", "gb"):
+                model = "gradient_boosting"
+
+        log.write(
+            f"[bold green]DEVRAKSHAK Assistant:[/bold green] Spawning background worker to train "
+            f"[bold cyan]{model}[/bold cyan] ({task})..."
+        )
+        self._start_chat_training_worker(task, model)
+
+    @work(exclusive=False, thread=True)
+    def _start_chat_training_worker(self, task: str, model: str) -> None:
+        try:
+            bundle, run = self.engine.train(
+                task_type=task,
+                model_name=model,
+                feature_selector="lrrc",
+                n_features=self.engine.settings.lrrc_max_features,
+                sample_limit=self.engine.settings.sample_limit
+            )
+            self.app.call_from_thread(self._on_chat_training_done, run)
+        except Exception as exc:
+            self.app.call_from_thread(self._on_chat_error, f"Training failed: {exc}")
+
+    def _on_chat_training_done(self, run: TrainingRun) -> None:
+        log = self.query_one("#chat-log", RichLog)
+        fpr_str = f"{run.false_positive_rate:.4f}" if run.false_positive_rate is not None else "N/A"
+        log.write(f"\n[bold green]✅ Training Completed Successfully! Run: {run.run_id}[/bold green]")
+        table = Table(show_header=False)
+        table.add_row("Model", run.model_name)
+        table.add_row("Task Type", run.task_type)
+        table.add_row("Features Selected", f"{run.selected_features_count} feats via LRRC-FS")
+        table.add_row("Macro F1-Score", f"[bold green]{run.macro_f1:.4f}[/bold green]")
+        table.add_row("Accuracy", f"{run.accuracy:.4f}")
+        table.add_row("False Positive Rate", fpr_str)
+        table.add_row("Inference Latency", f"{run.inference_latency_ms_per_sample:.4f} ms/sample")
+        table.add_row("Saved Model Bundle", run.model_path)
+        log.write(table)
+
+    def _handle_chat_synthetic(self, query: str, log: RichLog) -> None:
+        parts = query.strip().split()
+        samples = 3000
+        if len(parts) > 1 and parts[1].isdigit():
+            samples = int(parts[1])
+
+        log.write(f"[bold green]DEVRAKSHAK Assistant:[/bold green] Generating synthetic test dataset ({samples:,} samples)...")
+        self._start_chat_synthetic_worker(samples)
+
+    @work(exclusive=False, thread=True)
+    def _start_chat_synthetic_worker(self, samples: int) -> None:
+        try:
+            out = self.engine.generate_synthetic(n_samples=samples)
+            self.app.call_from_thread(self._on_chat_synthetic_done, str(out), samples)
+        except Exception as exc:
+            self.app.call_from_thread(self._on_chat_error, f"Synthetic generation failed: {exc}")
+
+    def _on_chat_synthetic_done(self, out_path: str, count: int) -> None:
+        log = self.query_one("#chat-log", RichLog)
+        log.write(f"[bold green]✅ Generated {count:,} synthetic test records at:[/bold green] `{out_path}`")
+
+    @work(exclusive=False, thread=True)
+    def _start_chat_compare_worker(self) -> None:
+        try:
+            res = self.engine.run_selector_comparison()
+            self.app.call_from_thread(self._on_chat_compare_done, res)
+        except Exception as exc:
+            self.app.call_from_thread(self._on_chat_error, f"Comparison failed: {exc}")
+
+    def _on_chat_compare_done(self, res: dict) -> None:
+        log = self.query_one("#chat-log", RichLog)
+        log.write(f"[bold green]✅ Comparison finished! Report saved at:[/bold green] {res.get('report_file')}")
+        table = Table(title="Feature Selection Comparison", show_header=True, header_style="bold magenta")
+        table.add_column("Selector", style="cyan")
+        table.add_column("Features", justify="right")
+        table.add_column("Macro F1", justify="right", style="bold green")
+        table.add_column("Latency (ms)", justify="right")
+        for r in res.get("results", []):
+            if r.get("status") == "SUCCESS":
+                table.add_row(
+                    r["selector"],
+                    str(r["feature_count"]),
+                    f"{r['macro_f1']:.4f}",
+                    f"{r['inference_latency_ms']:.4f}"
+                )
+        log.write(table)
+
+    def _on_chat_error(self, err_msg: str) -> None:
+        log = self.query_one("#chat-log", RichLog)
+        log.write(f"[bold red]❌ {err_msg}[/bold red]")

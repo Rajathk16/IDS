@@ -170,10 +170,11 @@ class MonitorScreenWidget(Widget):
         status.update("⏳ Executing offline model inference on CSV sample...")
         try:
             discovered = self.engine.discover_datasets()
-            target_csv = (
-                discovered["raw"][0] if discovered["raw"]
-                else (discovered["synthetic"][0] if discovered["synthetic"] else self.engine.generate_synthetic())
-            )
+            if not discovered["raw"] and not discovered["synthetic"]:
+                raise FileNotFoundError(
+                    "No datasets found in data/raw/. Please extract your CICIoT2023 CSV into data/raw/."
+                )
+            target_csv = discovered["raw"][0] if discovered["raw"] else discovered["synthetic"][0]
             df_out, events = self.engine.predict_offline(target_csv, sample_limit=1000)
             self.app.call_from_thread(self._on_inference_done, len(events))
         except Exception as exc:

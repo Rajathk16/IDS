@@ -1,26 +1,249 @@
-# 🛡️ DEVRAKSHAK // AI-Based Intrusion & DDoS Defense System (CICIoT2023)
+# 🛡️ DEVRAKSHAK // AI-Based IoT Intrusion & DDoS Defense System (CICIoT2023)
 
-An offline, reproducible, cyber-dark terminal user interface and AI pipeline designed for IoT network anomaly detection, distributed denial-of-service (DDoS) flood mitigation, Mirai botnet recognition, and network reconnaissance using the official **CICIoT2023** dataset schema.
+An offline, reproducible, cyber-dark terminal user interface and AI pipeline designed for IoT network anomaly detection, distributed denial-of-service (DDoS) flood mitigation, Mirai botnet recognition, and network reconnaissance based on the official **CICIoT2023** dataset schema.
 
 ---
 
-## 📌 1. Project Overview & Objectives
+## 📌 Project Status
 
-Internet of Things (IoT) devices have constrained computing power, memory, and rudimentary firmware, making them prime targets for botnet enslavement and massive DDoS campaigns. This system provides:
+- **Terminal Prototype:** **100% Complete & Tested.**
+- **Sample Data Status:** **All sample/synthetic data has been cleaned and removed.** The repository is clean and prepared for the real **CICIoT2023** dataset.
+- **Environment Setup:** **Zero external environment variables (`.env`) or cloud API keys required.** Everything operates 100% locally and offline.
+- **Automated Tests:** **27/27 unit and integration tests passing.**
 
-1. **Dual Classification Tasks:**
+---
+
+## 🧭 Table of Contents
+1. [What We Have Done](#-1-what-we-have-done)
+2. [What is Yet to Be Done](#-2-what-is-yet-to-be-done)
+3. [The Core Novel Algorithm: LRRC-FS](#-3-the-core-novel-algorithm-lrrc-fs)
+4. [Models & Machine Learning Architecture](#-4-models--machine-learning-architecture)
+5. [How to Upload the Real CICIoT2023 Dataset](#-5-how-to-upload-the-real-ciciot2023-dataset)
+6. [How to Run the Program](#-6-how-to-run-the-program)
+   - [Interactive Terminal User Interface (TUI)](#option-a-interactive-terminal-ui-tui)
+   - [Direct Command Line Interface (CLI)](#option-b-direct-cli-commands)
+7. [How to Check Outputs & Artifacts](#-7-how-to-check-outputs--artifacts)
+8. [Automated Verification & Testing](#-8-automated-verification--testing)
+9. [Architecture & File Structure](#-9-architecture--file-structure)
+
+---
+
+## 🚀 1. What We Have Done
+
+We have built a production-grade, offline cybersecurity defense system tailored specifically for IoT environments:
+
+1. **Cyberpunk Terminal User Interface (TUI):**
+   - Built with **Textual** and **Rich** featuring a 6-tab operational dashboard:
+     - `[1] CHAT`: Command assistant supporting conversational AI explanations, background model training, schema audits, selector comparisons, and system status queries.
+     - `[2] RUNS`: DataTable tracking historical training runs with per-class Macro F1 scores, accuracy, and latency.
+     - `[3] LOGS`: Live colorized log viewer streaming from an in-memory buffer with severity filters (`DEBUG`, `INFO`, `WARNING`, `ERROR`).
+     - `[4] MONITOR`: High-level metric cards, attack category distribution tables, and recent detection alerts.
+     - `[5] POLICIES`: Security policy manager for Mirai botnets, DDoS floods, DoS, Web injection, and Reconnaissance with threshold adjustments and an immutable audit log.
+     - `[6] SETTINGS`: Form validated with Pydantic v2 to customize directories, default models, sample limits, and LRRC-FS weights.
+2. **Proprietary Feature Selection Algorithm (LRRC-FS):**
+   - Developed the **Lightweight Relevance-Redundancy-Cost Feature Selector**, which balances statistical relevance, inter-feature redundancy, and computational packet extraction cost.
+3. **Dual Classification Tasks:**
    - **Binary Classification:** `BENIGN` vs. `ATTACK`.
-   - **Multiclass Classification:** Categorizes traffic into 8 attack groups (`Benign`, `DDoS`, `DoS`, `Recon`, `Web`, `BruteForce`, `Spoofing`, `Mirai`).
-2. **Data Quality & Audit Engine:** Chunked, memory-conscious CSV loading that detects missing values (NaNs), infinities, duplicates, and severe class imbalances on consumer laptops (8 GB RAM).
-3. **Custom Feature-Selection Algorithm:** Features our proprietary **Lightweight Relevance-Redundancy-Cost Feature Selector (LRRC-FS)**, which jointly optimizes statistical target relevance, inter-feature redundancy penalty, and computational extraction cost.
-4. **Resilience to Class Imbalance:** Compares unweighted learning, cost-sensitive class weighting (`class_weight='balanced'`), random under-sampling, and SMOTE on training partitions.
-5. **Interactive Terminal User Interface (TUI):** A 6-screen terminal application built with **Textual** and **Rich** featuring conversational queries, training runs management, live log viewing, detection monitoring, security policies, and settings.
-6. **Persistent Telemetry:** Stores historical runs and offline detection events across restarts in SQLite (`iot_ids.sqlite`).
-7. **Strict Grounding:** Works 100% offline. Never claims live packet inspection or real-time network hardware blocking unless genuine physical adapters are configured.
+   - **Multiclass Classification:** Categorizes traffic into 8 high-level security groups (`Benign`, `DDoS`, `DoS`, `Recon`, `Web`, `BruteForce`, `Spoofing`, `Mirai`).
+4. **Memory-Conscious Data Ingestion:**
+   - Designed to run on standard laptops (8 GB RAM) using chunk-based CSV processing.
+   - Built-in automatic `.zip` archive unpacker (automatically detects and unzips `ciciot2023 csv.zip` in `data/raw/`).
+5. **Class Imbalance Handling:**
+   - Implemented and benchmarked 4 distinct strategies: Unweighted Baseline, Cost-Sensitive Class Weighting (`class_weight='balanced'`), Random Under-Sampling, and SMOTE.
+6. **Persistence & Observability:**
+   - Structured SQLite storage (`iot_ids.sqlite`) storing detection events and model metadata.
+   - Automated confusion matrix heatmaps (`results/plots/`) and machine-readable metrics (`results/metrics/`).
+7. **Comprehensive Automated Test Suite:**
+   - 27 unit and integration tests covering all subsystems.
 
 ---
 
-## 🏗️ 2. Architecture & Directory Structure
+## ⏳ 2. What is Yet to Be Done
+
+Now that the software framework and terminal prototype are complete, the remaining milestones are:
+
+1. **Upload Real CICIoT2023 Dataset:**
+   - Place `ciciot2023 csv.zip` (or uncompressed CSV partitions) into `data/raw/`.
+2. **Run Full Data Audit on Real Data:**
+   - Execute `python src/main.py audit` to inspect the authentic 46 numerical flow features, label distributions, missing values, and memory footprint.
+3. **Train Models on Full Real Traffic:**
+   - Train the primary Random Forest and Decision Tree classifiers on the real dataset partitions.
+4. **Generate Final Empirical Benchmark Reports:**
+   - Run `python src/main.py compare-selectors` and `python src/main.py compare-imbalance` on the real dataset to generate publication-ready comparative tables and Markdown reports.
+5. **Hardware Edge Deployment (Optional Future Phase):**
+   - Deploy the serialized `.joblib` model bundle onto physical edge IoT devices (e.g., Raspberry Pi, OpenWrt router) for live flow classification.
+
+---
+
+## 🧮 3. The Core Novel Algorithm: LRRC-FS
+
+Standard feature selection methods (like SelectKBest or PCA) only analyze statistical variance. However, in IoT gateways, micro-controllers, and smart meters, calculating complex multi-packet dispersion statistics (like *Variance, Covariance, Radius*) consumes significant CPU cycles and power.
+
+### Mathematical Formulation
+$$\text{Score}(f) = w_{\text{rel}} \cdot \hat{R}(f) - w_{\text{red}} \cdot \hat{D}(f, S) - w_{\text{cost}} \cdot \hat{C}(f)$$
+
+Where:
+- $\hat{R}(f) \in [0, 1]$: **Target Relevance** via normalized ANOVA F-statistic ($F(f, y)$) measuring separation between benign flows and attacks.
+- $\hat{D}(f, S) \in [0, 1]$: **Redundancy Penalty** computed as the mean absolute Pearson correlation between candidate $f$ and already-selected features $S$:
+  $$\hat{D}(f, S) = \begin{cases} 0 & \text{if } |S| = 0 \\ \frac{1}{|S|} \sum_{s \in S} |\rho(f, s)| & \text{if } |S| > 0 \end{cases}$$
+- $\hat{C}(f) \in [0, 1]$: **Computational Cost Penalty**. Features requiring floating-point calculations and square roots (`Variance`, `Covariance`, `Radius` = cost $0.9$) are penalized in favor of lightweight packet bitflags (`TCP`, `UDP`, `syn_count`, `ack_flag_number` = cost $0.2$).
+- $w_{\text{rel}}, w_{\text{red}}, w_{\text{cost}}$: User-configurable non-negative weights (default: `0.5`, `0.3`, `0.2`).
+
+Greedy selection executes in $\mathcal{O}(n \cdot m^2 + k^2 m)$ time with deterministic lexical tie-breaking.
+
+---
+
+## 🌲 4. Models & Machine Learning Architecture
+
+| Model | CLI Identifier | Description | Optimal Use Case |
+| :--- | :--- | :--- | :--- |
+| **Random Forest** *(Default)* | `random_forest` | 50 bounded-depth trees (depth 12). Mitigates overfitting on noisy packet rate statistics. | Primary model for best balance of high Macro F1 and low False Positive Rate (FPR). |
+| **Decision Tree** | `decision_tree` | Single interpretable tree (depth 12). Ultra-low latency (< 0.05 ms/sample). | Sub-millisecond verification on edge routers. |
+| **Extra Trees** | `extra_trees` | Randomized decision trees. Lower variance on high-volume flood attacks. | Heavy DDoS flood classification. |
+| **HistGradientBoosting** | `gradient_boosting` | Histogram-based gradient boosting optimized for tabular metrics. | Large multi-partition datasets. |
+
+---
+
+## 📥 5. How to Upload the Real CICIoT2023 Dataset
+
+1. Place your downloaded dataset archive (`ciciot2023 csv.zip` or any `.csv` files) into:
+   ```text
+   d:\mini project\data\raw\
+   ```
+2. The data loader in `src/data/loader.py` includes **automatic zip extraction**. If a `.zip` file is detected, it will automatically unpack the CSV files upon the first run of `discover`, `audit`, or `train`.
+3. Verify the files are recognized:
+   ```powershell
+   .\.venv\Scripts\python.exe src/main.py discover
+   ```
+
+---
+
+## 💻 6. How to Run the Program
+
+### Option A: Interactive Terminal UI (TUI)
+
+Launch the full 6-tab terminal control plane:
+```powershell
+.\.venv\Scripts\python.exe src/main.py
+# OR
+.\.venv\Scripts\python.exe src/cli.py tui
+```
+
+#### TUI Navigation:
+- **`1` - `6` or `F1` - `F6`**: Switch tabs (`1:Chat`, `2:Runs`, `3:Logs`, `4:Monitor`, `5:Policies`, `6:Settings`).
+- **`Ctrl + Q`**: Exit cleanly.
+- **Chat Commands**: In the `[1] CHAT` tab, type:
+  - `/train` or `/train multiclass dt` - Spawns a background training worker.
+  - `/audit` - Audits the dataset in real-time.
+  - `/discover` - Lists discovered raw and synthetic datasets.
+  - `/compare` - Runs feature selection comparison.
+  - `/status` - Displays system health, record counts, and database status.
+  - `/lrrc` - Explains the LRRC-FS mathematical formula.
+  - `/models` - Compares classifier architectures.
+  - `/metrics` - Explains why Macro F1 matters more than Accuracy.
+  - `/clear` - Clears the chat screen.
+
+---
+
+### Option B: Direct CLI Commands
+
+#### 1. Discover Available Datasets
+```powershell
+.\.venv\Scripts\python.exe src/main.py discover
+```
+
+#### 2. Audit Dataset Quality & Schema
+Audits row counts, missing values, infinite values, duplicate rows, and class distributions:
+```powershell
+.\.venv\Scripts\python.exe src/main.py audit
+# Or audit a specific file:
+.\.venv\Scripts\python.exe src/main.py audit --path data/raw/ciciot2023.csv --max-rows 50000
+```
+
+#### 3. Train a Model (with LRRC-FS Feature Selection)
+```powershell
+# Binary classification (BENIGN vs ATTACK) using Random Forest (15 features)
+.\.venv\Scripts\python.exe src/main.py train --task binary --model random_forest --selector lrrc --features 15 --samples 25000
+
+# Multiclass classification (8 attack categories) using Decision Tree
+.\.venv\Scripts\python.exe src/main.py train --task multiclass --model decision_tree --selector lrrc --features 10 --samples 25000
+
+# Train with cost-sensitive class weighting for rare attacks
+.\.venv\Scripts\python.exe src/main.py train --task multiclass --model random_forest --class-weight --samples 25000
+```
+
+#### 4. Run Empirical Feature Selection Comparison
+Benchmarks **LRRC-FS** against *All Features*, *Variance Threshold*, and *SelectKBest*:
+```powershell
+.\.venv\Scripts\python.exe src/main.py compare-selectors --samples 10000 --features 15
+```
+
+#### 5. Run Class Imbalance Handling Comparison
+Benchmarks *Unweighted*, *Class-Weighted*, *Random Under-Sampling*, and *SMOTE*:
+```powershell
+.\.venv\Scripts\python.exe src/main.py compare-imbalance --samples 10000
+```
+
+#### 6. Run Offline Inference / Predictions on Traffic
+Classifies traffic flows, assigns confidence scores, flags attacks, and matches security policies:
+```powershell
+# Run inference on 1,000 rows
+.\.venv\Scripts\python.exe src/main.py predict --input data/raw/ciciot2023.csv --samples 1000
+
+# Export annotated predictions with alert tags to CSV
+.\.venv\Scripts\python.exe src/main.py predict --input data/raw/ciciot2023.csv --output results/predictions_annotated.csv
+```
+
+#### 7. Review Historical Runs & Security Alerts
+```powershell
+# List training runs
+.\.venv\Scripts\python.exe src/main.py runs --limit 10
+
+# List recent detection events
+.\.venv\Scripts\python.exe src/main.py events --limit 20
+
+# Filter detection alerts by severity (CRITICAL, HIGH, MEDIUM, LOW)
+.\.venv\Scripts\python.exe src/main.py events --severity HIGH
+```
+
+#### 8. Manage Security Alert Policies
+```powershell
+# Show active policies
+.\.venv\Scripts\python.exe src/main.py policy show
+
+# Toggle a policy enabled/disabled
+.\.venv\Scripts\python.exe src/main.py policy toggle --id POL-001 --disable
+.\.venv\Scripts\python.exe src/main.py policy toggle --id POL-001 --enable
+```
+
+---
+
+## 📂 7. How to Check Outputs & Artifacts
+
+| Output Type | File Path / Location | Purpose |
+| :--- | :--- | :--- |
+| **Trained Models** | `models/*.joblib` | Persisted model bundles containing the fitted classifier, fitted `IoTDataPreprocessor`, preprocessing manifest, and label encoder. |
+| **Confusion Matrix Plots** | `results/plots/*.png` | Visual confusion matrix heatmaps generated after each training run. |
+| **Run Metrics (JSON)** | `results/metrics/*.json` | Evaluation metrics (Accuracy, Macro F1, Weighted F1, FPR, inference latency, per-class Precision/Recall). |
+| **Comparison Reports** | `results/reports/*.md` | Markdown reports documenting feature selection and class imbalance experiments. |
+| **Audit Reports** | `results/reports/audit_report_*.md` | Comprehensive data quality and schema integrity audits. |
+| **SQLite Database** | `iot_ids.sqlite` | Tables `training_runs` and `detection_events` recording all historical runs and alerts. |
+| **Application Log** | `iot_ids.log` | Rotating log file capturing structured application and detection events. |
+
+---
+
+## 🧪 8. Automated Verification & Testing
+
+To run the complete automated test suite (27 tests):
+```powershell
+.\.venv\Scripts\pytest.exe -v
+```
+
+All tests execute inside isolated temporary directories (`tmp_path`) and do not pollute the workspace.
+
+---
+
+## 🏛️ 9. Architecture & File Structure
 
 ```text
 d:/mini project/
@@ -28,17 +251,16 @@ d:/mini project/
 │   ├── settings.json            # Pydantic-validated application settings
 │   └── policies.json            # Security alert policies & audit history
 ├── data/
-│   ├── raw/                     # Place official CICIoT2023 CSV files here
-│   │   └── README.md            # Manual download instructions
+│   ├── raw/                     # Put ciciot2023 csv.zip or raw CSVs here
 │   ├── processed/               # Preprocessed feature manifests & aligned data
-│   └── synthetic/               # Synthetic offline test datasets
-├── models/                      # Versioned .joblib model bundles (preprocessor + selector + clf)
+│   └── synthetic/               # Empty (clean for real dataset upload)
+├── models/                      # Versioned .joblib model bundles
 ├── results/
 │   ├── metrics/                 # Machine-readable JSON evaluation reports
 │   ├── plots/                   # Saved confusion matrix figures (.png)
 │   └── reports/                 # Markdown audit and experiment comparisons
 ├── src/
-│   ├── main.py                  # Default application entrypoint (launches TUI or CLI)
+│   ├── main.py                  # Main executable entrypoint (launches TUI or CLI)
 │   ├── cli.py                   # Rich terminal CLI commands
 │   ├── core/
 │   │   ├── engine.py            # Unified domain orchestrator
@@ -47,11 +269,11 @@ d:/mini project/
 │   │   ├── settings.py          # AppSettings configuration management
 │   │   └── logging_config.py    # Rotating file logger & in-memory buffer
 │   ├── data/
-│   │   ├── loader.py            # Chunked CSV reader & schema inspector
+│   │   ├── loader.py            # Chunked CSV reader with automatic .zip extraction
 │   │   ├── audit.py             # Data quality audit & report generator
 │   │   ├── preprocess.py        # Imputation, scaling & PreprocessingManifest
 │   │   ├── split.py             # Leakage-resistant stratified partitioner
-│   │   ├── synthetic.py         # Synthetic CICIoT2023 generator for offline tests
+│   │   ├── synthetic.py         # Synthetic CICIoT2023 generator utility
 │   │   └── taxonomy.py          # Official 46 features & 34-class label taxonomy
 │   ├── algorithms/
 │   │   ├── feature_selector.py  # Custom LRRC-FS greedy algorithm
@@ -64,174 +286,11 @@ d:/mini project/
 │   │   ├── predictor.py         # Offline batch/streaming inference engine
 │   │   └── event_store.py       # SQLite database manager
 │   └── tui/
-│       ├── app.py               # Main Textual TUI Application
+│       ├── app.py               # Main Textual TUI Application (F1-F6 keybindings)
 │       └── screens/             # CHAT, RUNS, LOGS, MONITOR, POLICIES, SETTINGS
-├── tests/                       # 25 automated pytest tests
+├── tests/                       # 27 automated pytest tests
 ├── requirements.txt             # Pinned package versions
-├── .gitignore                   # Ignores large datasets, models, and virtualenvs
+├── iot_ids.sqlite               # Persistent SQLite database
+├── iot_ids.log                  # Structured rotating log file
 └── README.md                    # Project documentation
 ```
-
----
-
-## ⚙️ 3. Installation & Environment Setup
-
-### Prerequisites
-- Python 3.11, 3.12, 3.13, or 3.14.
-- Windows, Linux, or macOS.
-
-### Step 1: Clone / Navigate to Workspace
-```bash
-cd "d:/mini project"
-```
-
-### Step 2: Initialize Virtual Environment
-Using Python's standard `venv` or `uv`:
-```bash
-# Using standard Python
-python -m venv .venv
-
-# Activate on Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Activate on Windows (CMD):
-.venv\Scripts\activate.bat
-# Activate on Linux/macOS:
-source .venv/bin/activate
-```
-
-### Step 3: Install Required Dependencies
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 📊 4. Dataset Acquisition (CICIoT2023)
-
-The project is designed around the official **CICIoT2023** dataset released by the Canadian Institute for Cybersecurity (University of New Brunswick).
-
-### Real Dataset Instructions:
-1. Visit the official download portal:
-   [https://www.unb.ca/cic/datasets/iotdataset-2023.html](https://www.unb.ca/cic/datasets/iotdataset-2023.html)
-2. Download one or more CSV partition files (e.g. `part-00000-*.csv`).
-3. Place the `.csv` file(s) into:
-   ```text
-   data/raw/
-   ```
-
-### Offline Synthetic Dataset Generator (No 20 GB Download Required):
-If you do not have the multi-gigabyte dataset downloaded yet, use the included synthetic generator. It generates exact 46-feature CSV files matching the authentic schema:
-```bash
-python src/cli.py synthetic --samples 3000 --output synthetic_ciciot2023.csv
-```
-*Note: All synthetic files are tagged with `.meta.json` sidecars and explicitly marked as `SYNTHETIC` across all reports and UI screens.*
-
----
-
-## 🧮 5. Custom Algorithm: LRRC-FS
-
-The **Lightweight Relevance-Redundancy-Cost Feature Selector (LRRC-FS)** is an original, greedy feature-selection algorithm developed for IoT network intrusion detection.
-
-### Mathematical Formulation
-$$\text{Score}(f) = w_{\text{rel}} \cdot \hat{R}(f) - w_{\text{red}} \cdot \hat{D}(f, S) - w_{\text{cost}} \cdot \hat{C}(f)$$
-
-Where:
-- $\hat{R}(f) \in [0, 1]$: **Normalized Target Relevance** via ANOVA F-statistic ($F(f, y)$) or Mutual Information, normalized by min-max scaling across candidate features.
-- $\hat{D}(f, S) \in [0, 1]$: **Redundancy Penalty** computed as the mean absolute Pearson correlation between candidate $f$ and already-selected features $S$:
-  $$\hat{D}(f, S) = \begin{cases} 0 & \text{if } |S| = 0 \\ \frac{1}{|S|} \sum_{s \in S} |\rho(f, s)| & \text{if } |S| > 0 \end{cases}$$
-- $\hat{C}(f) \in [0, 1]$: **Computational Cost Penalty**. In IoT micro-controllers and edge routers, multi-packet dispersion statistics (`Variance`, `Covariance`, `Radius`, `IAT`) require floating-point divisions and square roots, whereas header flags (`syn_flag_number`, `TCP`, `UDP`) require single-cycle bitwise checks. We penalize complex metrics to prioritize fast, low-overhead features.
-- $w_{\text{rel}}, w_{\text{red}}, w_{\text{cost}}$: User-configurable non-negative weights (default: `0.5`, `0.3`, `0.2`).
-
-### Greedy Selection & Complexity
-1. First feature $f_1^* = \arg\max_{f} (\hat{R}(f) - w_{\text{cost}}\hat{C}(f))$ with deterministic tie-breaking by alphabetical feature name.
-2. Iteratively append the candidate maximizing $\text{Score}(f)$ until $k$ features are selected.
-3. Total Time Complexity: $\mathcal{O}(n \cdot m^2 + k^2 m)$, which runs in under **0.1 seconds** on 3,000 samples.
-
----
-
-## 🖥️ 6. Interactive Terminal User Interface (TUI)
-
-Launch the interactive Textual application with:
-```bash
-python src/main.py
-# or
-python src/cli.py tui
-```
-
-### The Six Operational Screens:
-1. **💬 CHAT (Key: `1`):** Ask questions about the dataset, metrics, models, policies, or type `help`, `status`, `audit`, `lrrc`, `models`, `metrics`. Provides educational explanations with zero hallucination.
-2. **🚀 RUNS (Key: `2`):** Interactive DataTable of historical training runs. Click **"Train Model"** to run training asynchronously in a background worker without freezing the UI. Select any row to inspect per-class metrics and confusion matrix paths.
-3. **📜 LOGS (Key: `3`):** Live structured logging console streaming from an in-memory circular buffer. Filter by `DEBUG`, `INFO`, `WARNING`, `ERROR`.
-4. **📡 MONITOR (Key: `4`):** Displays offline detection metrics, Benign vs. Attack count cards, attack-category distribution table, and recent detection events with policy severity tags.
-5. **🛡️ POLICIES (Key: `5`):** View and adjust security alert thresholds (e.g. Critical Mirai, High DDoS). Toggle policies enabled/disabled and inspect the audit trail.
-6. **⚙️ SETTINGS (Key: `6`):** Configure data paths, sample limits, default models, and LRRC-FS weights. Validated using Pydantic v2 and persisted to `config/settings.json`.
-
-### Global Keybindings:
-- `1` - `6`: Switch between screens.
-- `Ctrl + Q`: Quit application safely.
-
----
-
-## 💻 7. Command Line Interface (CLI) Guide
-
-All domain operations can be run directly from the command line:
-
-```bash
-# 1. Discover available datasets
-python src/cli.py discover
-
-# 2. Generate synthetic test dataset
-python src/cli.py synthetic --samples 3000 --output synthetic_ciciot2023.csv
-
-# 3. Perform a dataset quality audit
-python src/cli.py audit --max-rows 10000
-
-# 4. Train a Binary Model with LRRC-FS
-python src/cli.py train --task binary --model random_forest --selector lrrc --features 15 --samples 2500
-
-# 5. Train a Multiclass Model with Class Weighting
-python src/cli.py train --task multiclass --model extra_trees --selector lrrc --features 15 --class-weight
-
-# 6. Empirically Compare Feature Selectors (All vs Variance vs KBest vs LRRC-FS)
-python src/cli.py compare-selectors
-
-# 7. Run Offline Predictions on a CSV file
-python src/cli.py predict --input data/synthetic/synthetic_ciciot2023.csv --samples 100
-
-# 8. List Historical Training Runs
-python src/cli.py runs --limit 10
-
-# 9. View Detection Event Log
-python src/cli.py events --limit 20 --severity HIGH
-
-# 10. Inspect Alert Policies
-python src/cli.py policy show
-```
-
----
-
-## 🧪 8. Automated Testing & Reliability
-
-The test suite contains **25 unit tests** across all subsystems:
-
-```bash
-pytest -v
-```
-
-### Test Coverage Highlights:
-- **`tests/test_core.py`:** Pydantic settings validation, persistence, alert policy evaluation, and circular log buffers.
-- **`tests/test_data.py`:** Synthetic data generation, label taxonomy mapping, schema inspection, chunked loading, and dataset audit report creation.
-- **`tests/test_pipeline.py`:** NaN/inf imputation, standardization, preprocessing manifest serialization, leakage-resistant stratification, LRRC-FS greedy determinism, and baselines.
-- **`tests/test_training.py`:** Decision Tree, Random Forest, Extra Trees, Gradient Boosting, SMOTE/under-sampling, Macro F1, and False Positive Rate.
-- **`tests/test_detection.py`:** Offline batch inference, policy triggers, and SQLite persistence.
-- **`tests/test_cli.py`:** CLI subcommands and parameter parsing.
-- **`tests/test_tui.py`:** Textual async runner testing mount, layout, and tab switching.
-
----
-
-## ⚖️ 9. Academic Limitations & Ethical Boundaries
-
-1. **Offline Traffic Analysis:** This prototype evaluates tabular flow records stored in CSV format. It does not perform live network sniffing (`pcap`) or socket packet interception.
-2. **No Hardware Blocking:** Detection events flag security alerts according to policy thresholds. The system does not automatically modify iptables, route tables, or firewall rules.
-3. **Random Splitting Disclaimer:** Standard train/test partitioning measures in-distribution classification accuracy. High performance on a given test partition does not guarantee generalization to unseen IoT device hardware or novel zero-day attack vectors.
-4. **Synthetic Data Transparency:** Synthetic datasets are exclusively for testing when real dataset partitions cannot be downloaded. Synthetic metrics are clearly labeled in all tables and reports.

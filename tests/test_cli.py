@@ -34,6 +34,18 @@ def test_cli_parser_subcommands():
     assert args_pol.command == "policy"
     assert args_pol.action == "show"
 
+    # Compare selectors command
+    args_cmp = parser.parse_args(["compare-selectors", "--samples", "200", "--task", "binary", "--features", "6"])
+    assert args_cmp.command == "compare-selectors"
+    assert args_cmp.samples == 200
+    assert args_cmp.features == 6
+
+    # Compare imbalance command
+    args_imb = parser.parse_args(["compare-imbalance", "--samples", "200", "--model", "decision_tree"])
+    assert args_imb.command == "compare-imbalance"
+    assert args_imb.samples == 200
+    assert args_imb.model == "decision_tree"
+
 
 def test_cli_execution_workflow(tmp_path: Path, monkeypatch):
     # Test synthetic generation via engine directly as invoked by CLI

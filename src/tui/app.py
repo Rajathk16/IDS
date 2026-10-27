@@ -120,6 +120,12 @@ class DevRakshakApp(App):
         Binding("4", "switch_tab('tab-monitor')", "4:Monitor", show=True),
         Binding("5", "switch_tab('tab-policies')", "5:Policies", show=True),
         Binding("6", "switch_tab('tab-settings')", "6:Settings", show=True),
+        Binding("f1", "switch_tab('tab-chat')", "F1:Chat", show=False),
+        Binding("f2", "switch_tab('tab-runs')", "F2:Runs", show=False),
+        Binding("f3", "switch_tab('tab-logs')", "F3:Logs", show=False),
+        Binding("f4", "switch_tab('tab-monitor')", "F4:Monitor", show=False),
+        Binding("f5", "switch_tab('tab-policies')", "F5:Policies", show=False),
+        Binding("f6", "switch_tab('tab-settings')", "F6:Settings", show=False),
         Binding("ctrl+q", "quit", "Quit", show=True),
     ]
 

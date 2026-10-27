@@ -95,8 +95,11 @@ class LogsScreenWidget(Widget):
             elif r.levelno <= logging.DEBUG:
                 color = "dim cyan"
 
+            from datetime import datetime
+            time_str = getattr(r, "asctime", None) or datetime.fromtimestamp(getattr(r, "created", 0)).strftime("%H:%M:%S")
+
             msg = (
-                f"[dim]{r.asctime if hasattr(r, 'asctime') else ''}[/dim] "
+                f"[dim]{time_str}[/dim] "
                 f"[{color}][{r.levelname}][/{color}] "
                 f"[cyan]{r.name}[/cyan]: {r.getMessage()}"
             )

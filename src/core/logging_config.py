@@ -19,6 +19,10 @@ class InMemoryLogBuffer(logging.Handler):
         self.buffer: Deque[logging.LogRecord] = collections.deque(maxlen=capacity)
 
     def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self.format(record)
+        except Exception:
+            pass
         self.buffer.append(record)
 
     def get_records(self, limit: int = 200, level_filter: str = "ALL") -> List[logging.LogRecord]:

@@ -136,7 +136,13 @@ def cmd_compare_selectors(args: argparse.Namespace, engine: IDSEngine) -> None:
     """Run empirical comparison across feature selection algorithms."""
     console.print("[bold cyan]Running Empirical Feature Selection Comparison...[/bold cyan]")
     path = Path(args.path) if args.path else None
-    res = engine.run_selector_comparison(data_path=path)
+    res = engine.run_selector_comparison(
+        data_path=path,
+        task_type=args.task,
+        model_name=args.model,
+        n_features=args.features,
+        sample_limit=args.samples
+    )
     console.print(f"[bold green][OK] Comparison complete! Report generated at:[/bold green] {res['report_file']}")
 
     table = Table(title="Feature Selection Performance Comparison", show_header=True, header_style="bold magenta")
@@ -158,6 +164,42 @@ def cmd_compare_selectors(args: argparse.Namespace, engine: IDSEngine) -> None:
                 f"{r['inference_latency_ms']:.4f}",
                 f"{r['accuracy']:.4f}",
                 f"{r['macro_f1']:.4f}",
+                fpr
+            )
+    console.print(table)
+
+
+def cmd_compare_imbalance(args: argparse.Namespace, engine: IDSEngine) -> None:
+    """Run empirical comparison across class imbalance strategies."""
+    console.print("[bold cyan]Running Class Imbalance Strategy Comparison...[/bold cyan]")
+    path = Path(args.path) if args.path else None
+    res = engine.run_imbalance_comparison(
+        data_path=path,
+        task_type=args.task,
+        model_name=args.model,
+        sample_limit=args.samples
+    )
+    console.print(f"[bold green][OK] Imbalance comparison complete! Report saved to:[/bold green] {res['report_file']}")
+
+    table = Table(title="Class Imbalance Handling Strategies", show_header=True, header_style="bold yellow")
+    table.add_column("Strategy", style="cyan")
+    table.add_column("Accuracy", justify="right")
+    table.add_column("Precision", justify="right")
+    table.add_column("Recall", justify="right")
+    table.add_column("Macro F1", justify="right", style="bold green")
+    table.add_column("Weighted F1", justify="right")
+    table.add_column("FPR", justify="right")
+
+    for r in res["results"]:
+        if r.get("status") == "SUCCESS":
+            fpr = f"{r['false_positive_rate']:.4f}" if r.get("false_positive_rate") is not None else "-"
+            table.add_row(
+                r["strategy"],
+                f"{r['accuracy']:.4f}",
+                f"{r['precision']:.4f}",
+                f"{r['recall']:.4f}",
+                f"{r['macro_f1']:.4f}",
+                f"{r['weighted_f1']:.4f}",
                 fpr
             )
     console.print(table)
@@ -334,6 +376,17 @@ def build_parser() -> argparse.ArgumentParser:
     # compare-selectors
     p_cmp = subparsers.add_parser("compare-selectors", help="Empirically compare feature selectors")
     p_cmp.add_argument("--path", type=str, default=None, help="Path to dataset")
+    p_cmp.add_argument("--task", type=str, default="binary", choices=["binary", "multiclass"])
+    p_cmp.add_argument("--model", type=str, default="random_forest", choices=["decision_tree", "random_forest", "extra_trees", "gradient_boosting"])
+    p_cmp.add_argument("--features", type=int, default=15, help="Features to select for LRRC and KBest")
+    p_cmp.add_argument("--samples", type=int, default=5000, help="Sample limit for memory efficiency")
+
+    # compare-imbalance
+    p_imb = subparsers.add_parser("compare-imbalance", help="Empirically compare class imbalance handling techniques")
+    p_imb.add_argument("--path", type=str, default=None, help="Path to dataset")
+    p_imb.add_argument("--task", type=str, default="binary", choices=["binary", "multiclass"])
+    p_imb.add_argument("--model", type=str, default="random_forest", choices=["decision_tree", "random_forest", "extra_trees", "gradient_boosting"])
+    p_imb.add_argument("--samples", type=int, default=5000, help="Sample limit for memory efficiency")
 
     # predict
     p_prd = subparsers.add_parser("predict", help="Run offline inference on a CSV file")
@@ -371,6 +424,9 @@ def main() -> None:
 
     if not args.command:
         # Default behavior: run TUI if in interactive terminal, otherwise show help
+        if sys.stdin and hasattr(sys.stdin, "isatty") and not sys.stdin.isatty():
+            parser.print_help()
+            return
         from src.tui.app import run_tui
         run_tui()
         return
@@ -388,6 +444,8 @@ def main() -> None:
         cmd_train(args, engine)
     elif args.command == "compare-selectors":
         cmd_compare_selectors(args, engine)
+    elif args.command == "compare-imbalance":
+        cmd_compare_imbalance(args, engine)
     elif args.command == "predict":
         cmd_predict(args, engine)
     elif args.command == "runs":

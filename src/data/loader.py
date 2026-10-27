@@ -32,8 +32,13 @@ def is_synthetic_file(file_path: Path) -> bool:
     return False
 
 
+import zipfile
+
 def discover_csv_files(target_path: Path) -> List[Path]:
-    """Discover all CSV files in a given file path or directory."""
+    """
+    Discover all CSV files in a given file path or directory.
+    If a zip archive is supplied or present in the directory, automatically unzips it.
+    """
     target = Path(target_path)
     if not target.exists():
         raise FileNotFoundError(f"Path does not exist: {target}")
@@ -41,13 +46,33 @@ def discover_csv_files(target_path: Path) -> List[Path]:
     if target.is_file():
         if target.suffix.lower() == ".csv":
             return [target]
-        raise ValueError(f"Target file is not a CSV: {target}")
+        if target.suffix.lower() == ".zip":
+            extract_dir = target.parent
+            logger.info(f"Unpacking zip archive '{target.name}' into {extract_dir}...")
+            with zipfile.ZipFile(target, "r") as zf:
+                zf.extractall(extract_dir)
+            target = extract_dir
 
-    csv_files = sorted(list(target.glob("*.csv")))
-    if not csv_files:
-        # Check subdirectories
-        csv_files = sorted(list(target.rglob("*.csv")))
-    return csv_files
+    if target.is_dir():
+        csv_files = sorted(list(target.glob("*.csv")))
+        if not csv_files:
+            # Check for zip files (e.g. ciciot2023 csv.zip) and unpack automatically
+            zip_files = sorted(list(target.glob("*.zip")))
+            for zf_path in zip_files:
+                logger.info(f"Auto-extracting zip archive '{zf_path.name}' in {target}...")
+                try:
+                    with zipfile.ZipFile(zf_path, "r") as zf:
+                        zf.extractall(target)
+                except Exception as exc:
+                    logger.warning(f"Could not extract {zf_path.name}: {exc}")
+            csv_files = sorted(list(target.glob("*.csv")))
+
+        if not csv_files:
+            # Check subdirectories
+            csv_files = sorted(list(target.rglob("*.csv")))
+        return csv_files
+
+    return []
 
 
 def inspect_schema(file_path: Path) -> Tuple[List[str], Optional[str]]:

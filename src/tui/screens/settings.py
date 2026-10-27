@@ -153,4 +153,16 @@ class SettingsScreenWidget(Widget):
         elif btn_id == "btn-reset-defaults":
             default_settings = AppSettings()
             update_settings(default_settings)
-            status.update("[bold yellow]✓ Restored factory default settings.[/bold yellow]")
+            # Update UI input controls with the reset values
+            self.query_one("#inp-data-dir", Input).value = str(default_settings.data_dir)
+            self.query_one("#inp-synth-dir", Input).value = str(default_settings.synthetic_dir)
+            self.query_one("#inp-model-dir", Input).value = str(default_settings.model_dir)
+            self.query_one("#inp-sample-limit", Input).value = str(default_settings.sample_limit or 20000)
+            self.query_one("#sel-default-model", Select).value = default_settings.default_model
+            self.query_one("#sel-default-task", Select).value = default_settings.default_task
+            self.query_one("#inp-max-features", Input).value = str(default_settings.lrrc_max_features)
+            self.query_one("#inp-w-rel", Input).value = str(default_settings.lrrc_relevance_weight)
+            self.query_one("#inp-w-red", Input).value = str(default_settings.lrrc_redundancy_weight)
+            self.query_one("#inp-w-cost", Input).value = str(default_settings.lrrc_cost_weight)
+            self.query_one("#sel-log-level", Select).value = default_settings.log_level
+            status.update("[bold yellow]✓ Restored and applied factory default settings.[/bold yellow]")
