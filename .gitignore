@@ -10,7 +10,10 @@ venv/
 ENV/
 
 # Data and Artifacts (large raw CSV files shouldn't be committed)
+data/raw/**/*.csv
 data/raw/*.csv
+data/raw/CICIOT23/
+data/processed/**/*.csv
 data/processed/*.csv
 data/processed/*.parquet
 data/synthetic/*.csv
@@ -24,6 +27,8 @@ models/*.pkl
 
 # Logs and Run Results
 *.log
+results/*.csv
+results/**/*.csv
 results/plots/*.png
 results/metrics/*.json
 results/reports/*.md

@@ -91,6 +91,11 @@ class DevRakshakApp(App):
         padding: 0;
         background: #070a13;
     }
+    ContentTabs {
+        background: #090d1a;
+        height: auto;
+        border-bottom: solid #1e293b;
+    }
     ContentTab {
         background: #090d1a;
         color: #94a3b8;
@@ -98,18 +103,29 @@ class DevRakshakApp(App):
         border: none;
     }
     ContentTab:hover {
-        background: #0f172a;
+        background: #1e293b;
         color: #38bdf8;
-    }
-    ContentTab.-active {
-        background: #111c35;
-        color: #00f0ff;
         text-style: bold;
-        border-bottom: tall #00f0ff;
+    }
+    ContentTab.-active,
+    Tabs:focus ContentTab.-active,
+    ContentTabs:focus ContentTab.-active {
+        background: #0284c7;
+        color: #ffffff;
+        text-style: bold;
+    }
+    ContentTab.-active:hover {
+        background: #0ea5e9;
+        color: #ffffff;
+        text-style: bold;
     }
     Tabs {
         background: #090d1a;
         border-bottom: solid #1e293b;
+    }
+    Tabs .underline--bar {
+        color: #38bdf8;
+        background: #38bdf8;
     }
     """
 
