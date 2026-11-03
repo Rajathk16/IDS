@@ -121,26 +121,56 @@ The data loader in `src/data/loader.py` supports streaming chunk-based ingestion
 
 ## 💻 5. How to Run & Check the Program
 
-### Option A: Interactive Terminal UI (TUI)
+### Option A: Cyberpunk Web Dashboard (Recommended & Primary Web Approach)
 
-Launch the cyberpunk terminal control plane:
+Launch the high-tech, browser-based management & telemetry dashboard:
 ```powershell
-.\.venv\Scripts\python.exe src/main.py
-```
+# Quick 1-click launch on Windows:
+.\start_web.bat
 
-#### TUI Hotkeys & Tabs:
-- **`1` (`[1] CHAT`)**: Interactive command console. Type:
-  - `/status` — Displays system health, record counts, active model, and database stats.
-  - `/audit` — Audits the dataset in real-time.
-  - `/train binary rf` — Spawns background training for Random Forest.
-  - `/compare` — Runs feature selector comparison.
-  - `/lrrc` — Displays the LRRC-FS mathematical breakdown.
-- **`2` (`[2] RUNS`)**: DataTable tracking all historical training runs with Macro F1, accuracy, and inference latency.
-- **`3` (`[3] LOGS`)**: Live colorized log viewer streaming directly from memory with severity filters.
-- **`4` (`[4] MONITOR`)**: Real-time traffic breakdown, high-level metrics, and recent detection event alerts.
-- **`5` (`[5] POLICIES`)**: Toggle and edit alert thresholds for Mirai, DDoS, DoS, and Recon policies.
-- **`6` (`[6] SETTINGS`)**: Validate and modify directories, default models, and LRRC-FS weights.
-- **`Ctrl + Q`**: Exit cleanly.
+# Or directly via Python / Virtual Environment:
+.\.venv\Scripts\python.exe src/web_server.py --port 8000
+
+# Or via uv:
+uv run python src/web_server.py
+```
+Open your web browser at: **`http://localhost:8000/`** (or `http://127.0.0.1:8000/`).
+
+#### 🌐 Web Dashboard Capabilities & Testing Guide:
+1. **🧪 [2] DATASET TESTING & INFERENCE (Official Dataset Testing)**:
+   - **Target Dataset**: Select any file from the newly added official platform partition (e.g., `Merged01.csv` through `Merged63.csv` in `data/raw/MERGED_CSV/`).
+   - **Model Selection**: Choose any trained model bundle (`Random Forest`, `Decision Tree`, etc.).
+   - **Flow Samples**: Pick how many traffic flows to test (50, 100, 250, 500, 1000, 2500, 5000).
+   - **Click `⚡ Execute Test`**:
+     - Instant detection accuracy score (e.g. 98.5%) and Macro F1 computed directly against ground truth.
+     - Flow-by-flow packet inspection table with ground truth vs. AI prediction, match badges (`MATCH` vs `MISMATCH`), confidence scores, severity levels, and policy alerts.
+     - Attack vector distribution chart (DDoS, Mirai, DoS, Spoofing, Recon, Benign).
+     - Filter flows by `All`, `Attacks`, `Benign`, `Mismatches`, or `Critical/High`.
+     - 1-click **Export to CSV or JSON** for formal reporting.
+2. **📊 [1] MONITOR & TELEMETRY**:
+   - Real-time telemetry counters (Total Ingress Flows, Attacks Detected, Benign Traffic, High/Critical Alerts).
+   - Live threat vector distribution chart and real-time alert feed.
+3. **📁 [3] OFFICIAL DATASETS & AUDIT**:
+   - Discovered datasets table showing all 63 files of the newly added official dataset.
+   - 1-click **Audit File** modal displaying total rows, schema validity, missing/infinite values, and full class distribution.
+4. **⚡ [4] MODEL TRAINING & LRRC-FS**:
+   - Train new Binary or Multiclass models directly on official dataset partitions.
+   - Configure LRRC-FS feature selection, top $k$ features, sample limits, and class imbalance mitigation.
+5. **📜 [5] RUN HISTORY**:
+   - DataTable of historical training runs, Macro F1, accuracy, and sub-millisecond inference latencies.
+6. **🛡️ [6] DEFENSE POLICIES**:
+   - Interactive rule toggles and confidence sliders for Mirai, DDoS, DoS, and Recon policies.
+7. **📋 [7] SYSTEM LOGS**:
+   - Real-time colorized log stream directly from `iot_ids.log`.
+
+---
+
+### Option B: Interactive Terminal UI (TUI - Legacy Terminal Approach)
+
+If terminal-only interaction is preferred:
+```powershell
+.\.venv\Scripts\python.exe src/cli.py tui
+```
 
 ---
 

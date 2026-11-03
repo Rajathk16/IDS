@@ -405,6 +405,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_evt.add_argument("--severity", type=str, default=None, help="Filter severity (INFO, LOW, MEDIUM, HIGH, CRITICAL)")
     p_evt.add_argument("--category", type=str, default=None, help="Filter attack category")
 
+    # web dashboard
+    p_web = subparsers.add_parser("web", help="Launch the DEVRAKSHAK Web Dashboard")
+    p_web.add_argument("--host", type=str, default="127.0.0.1", help="Host address to bind")
+    p_web.add_argument("--port", type=int, default=8000, help="Port to listen on")
+
     # policy
     p_pol = subparsers.add_parser("policy", help="Inspect and manage alert policies")
     p_pol.add_argument("action", choices=["show", "toggle"])
@@ -423,15 +428,15 @@ def main() -> None:
     engine = IDSEngine()
 
     if not args.command:
-        # Default behavior: run TUI if in interactive terminal, otherwise show help
-        if sys.stdin and hasattr(sys.stdin, "isatty") and not sys.stdin.isatty():
-            parser.print_help()
-            return
-        from src.tui.app import run_tui
-        run_tui()
+        # Default behavior: run Web Dashboard
+        from src.web.server import run_web_server
+        run_web_server()
         return
 
-    if args.command == "tui":
+    if args.command == "web":
+        from src.web.server import run_web_server
+        run_web_server(host=args.host, port=args.port)
+    elif args.command == "tui":
         from src.tui.app import run_tui
         run_tui()
     elif args.command == "synthetic":

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEVRAKSHAK // AI IoT Intrusion & DDoS Defense System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Control Bar -->
+  <header class="top-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <div class="brand-title">DEVRAKSHAK <span class="slash">//</span> AI IOT INTRUSION & DDOS DEFENSE</div>
+        <div class="brand-subtitle">CICIoT2023 Real-Time Telemetry & Offline Neural Shield</div>
+      </div>
+    </div>
+
+    <div class="header-status-group">
+      <div class="status-badge online" id="header-engine-status">
+        <span class="pulse-dot"></span> ENGINE ONLINE
+      </div>
+      <div class="status-badge info" id="header-model-badge">
+        MODEL: <strong>Random Forest</strong> [BINARY]
+      </div>
+      <div class="status-badge" style="background: rgba(168, 85, 247, 0.15); color: var(--neon-purple); border-color: rgba(168, 85, 247, 0.3);">
+        <span id="header-event-counter">0 Events / 0 Attacks</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <button class="nav-tab active" data-target="tab-monitor">
+      <span class="tab-num">[1]</span> 📊 MONITOR & TELEMETRY
+    </button>
+    <button class="nav-tab" data-target="tab-test">
+      <span class="tab-num">[2]</span> 🧪 DATASET TESTING & INFERENCE
+    </button>
+    <button class="nav-tab" data-target="tab-datasets">
+      <span class="tab-num">[3]</span> 📁 OFFICIAL DATASETS & AUDIT
+    </button>
+    <button class="nav-tab" data-target="tab-train">
+      <span class="tab-num">[4]</span> ⚡ MODEL TRAINING & LRRC-FS
+    </button>
+    <button class="nav-tab" data-target="tab-runs">
+      <span class="tab-num">[5]</span> 📜 RUN HISTORY
+    </button>
+    <button class="nav-tab" data-target="tab-policies">
+      <span class="tab-num">[6]</span> 🛡️ DEFENSE POLICIES
+    </button>
+    <button class="nav-tab" data-target="tab-logs">
+      <span class="tab-num">[7]</span> 📋 SYSTEM LOGS
+    </button>
+  </nav>
+
+  <!-- Main Content Areas -->
+  <main class="main-content">
+
+    <!-- TAB 1: MONITOR -->
+    <section class="tab-pane active" id="tab-monitor">
+      <!-- Metric Cards Grid -->
+      <div class="grid-cols-4">
+        <div class="metric-card" style="--accent: var(--neon-cyan);">
+          <div class="metric-label">Total Ingress Events</div>
+          <div class="metric-value" id="stat-total-events">0</div>
+          <div class="metric-sub">Processed network flows</div>
+        </div>
+        <div class="metric-card" style="--accent: var(--neon-red);">
+          <div class="metric-label">Attacks Detected</div>
+          <div class="metric-value" id="stat-attacks" style="color: var(--neon-red);">0</div>
+          <div class="metric-sub">Malicious network flows</div>
+        </div>
+        <div class="metric-card" style="--accent: var(--neon-green);">
+          <div class="metric-label">Benign Traffic</div>
+          <div class="metric-value" id="stat-benign" style="color: var(--neon-green);">0</div>
+          <div class="metric-sub">Normal benign flows</div>
+        </div>
+        <div class="metric-card" style="--accent: var(--neon-amber);">
+          <div class="metric-label">High / Critical Alerts</div>
+          <div class="metric-value" style="color: var(--neon-amber);">
+            <span id="stat-critical">0</span> / <span id="stat-high">0</span>
+          </div>
+          <div class="metric-sub">Requires policy mitigation</div>
+        </div>
+      </div>
+
+      <!-- Telemetry Breakdown & Live Alert Feed -->
+      <div class="grid-cols-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🚨 Threat Vector Distribution</span>
+            <span style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono);">CICIoT2023 Taxonomy</span>
+          </div>
+          <div class="card-body">
+            <div id="attack-category-chart" class="chart-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚡ Real-Time Alert Stream</span>
+            <button class="btn btn-secondary btn-sm" onclick="loadMonitorStats()">🔄 Refresh</button>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive" style="max-height: 380px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Source</th>
+                    <th>Row</th>
+                    <th>Prediction</th>
+                    <th>Conf</th>
+                    <th>Severity</th>
+                    <th>Policy</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-events-tbody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DATASET TESTING & INFERENCE -->
+    <section class="tab-pane" id="tab-test">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <span class="card-title">🧪 Offline Dataset Testing & Validation Console</span>
+          <span class="status-badge" style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan);">OFFICIAL CICIoT2023 EVALUATION</span>
+        </div>
+        <div class="card-body">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Test the pre-trained or newly trained defense models against any partition or merged CSV file from the official platform (e.g., <code>Merged01.csv</code> to <code>Merged63.csv</code>). Predictions are verified against ground truth to generate instant detection accuracy and confusion telemetry.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 2fr 2fr 1fr 1fr auto; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Target Dataset (Official Platform Files):</label>
+              <select id="test-dataset-select" class="form-control">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">AI Classifier Model:</label>
+              <select id="test-model-select" class="form-control">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Flow Samples:</label>
+              <select id="test-sample-limit" class="form-control">
+                <option value="50">50 flows</option>
+                <option value="100" selected>100 flows</option>
+                <option value="250">250 flows</option>
+                <option value="500">500 flows</option>
+                <option value="1000">1,000 flows</option>
+                <option value="2500">2,500 flows</option>
+                <option value="5000">5,000 flows</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; height: 38px;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; font-family: var(--font-mono);">
+                <input type="checkbox" id="test-record-events" checked style="transform: scale(1.2);"> Save Alerts to DB
+              </label>
+            </div>
+
+            <div>
+              <button class="btn btn-primary" id="btn-run-test" style="height: 38px; min-width: 150px;">
+                ⚡ Execute Test
+              </button>
+            </div>
+          </div>
+
+          <div id="test-loading-spinner" style="display: none; align-items: center; gap: 0.75rem; color: var(--neon-cyan); font-family: var(--font-mono); font-size: 0.85rem; margin-top: 1.25rem;">
+            <span class="pulse-dot"></span> Running offline inference & evaluation on dataset... please wait.
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Results Container (Initially Hidden) -->
+      <div id="test-results-container" style="display: none;">
+        <!-- Metrics Row -->
+        <div class="grid-cols-4">
+          <div class="metric-card" id="test-res-accuracy-card" style="--accent: var(--neon-green);">
+            <div class="metric-label">Detection Accuracy</div>
+            <div class="metric-value" id="test-res-accuracy" style="color: var(--neon-green);">0%</div>
+            <div class="metric-sub">
+              Matches: <span id="test-res-correct" style="color: #ffffff; font-weight: 700;">0</span> | Mismatches: <span id="test-res-misclassified" style="color: var(--neon-red); font-weight: 700;">0</span>
+            </div>
+          </div>
+
+          <div class="metric-card" style="--accent: var(--neon-cyan);">
+            <div class="metric-label">Samples Tested</div>
+            <div class="metric-value" id="test-res-samples">0</div>
+            <div class="metric-sub">File: <span id="test-res-file" style="color: #ffffff;">—</span></div>
+          </div>
+
+          <div class="metric-card" style="--accent: var(--neon-red);">
+            <div class="metric-label">Attacks Detected</div>
+            <div class="metric-value" id="test-res-attacks" style="color: var(--neon-red);">0</div>
+            <div class="metric-sub">Benign flows: <span id="test-res-benign" style="color: var(--neon-green); font-weight: 700;">0</span></div>
+          </div>
+
+          <div class="metric-card" style="--accent: var(--neon-purple);">
+            <div class="metric-label">Inference Latency</div>
+            <div class="metric-value" id="test-res-latency">0 ms</div>
+            <div class="metric-sub">Model: <span id="test-res-model" style="color: #ffffff;">—</span></div>
+          </div>
+        </div>
+
+        <!-- Predicted Category Breakdown -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <span class="card-title">📊 Test Flow Distribution by Attack Vector</span>
+          </div>
+          <div class="card-body">
+            <div id="test-category-breakdown" class="chart-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Inspection Table -->
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="card-title">🔍 Flow-by-Flow Packet Inspection</span>
+              <div style="display: flex; gap: 0.35rem; margin-left: 1rem;">
+                <button class="btn btn-secondary btn-sm test-filter-btn active" data-filter="all">All</button>
+                <button class="btn btn-secondary btn-sm test-filter-btn" data-filter="attacks">Attacks</button>
+                <button class="btn btn-secondary btn-sm test-filter-btn" data-filter="benign">Benign</button>
+                <button class="btn btn-secondary btn-sm test-filter-btn" data-filter="mismatches">Mismatches</button>
+                <button class="btn btn-secondary btn-sm test-filter-btn" data-filter="critical">Critical / High</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-sm" onclick="exportTestResults('csv')">💾 Export CSV</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportTestResults('json')">💾 Export JSON</button>
+            </div>
+          </div>
+
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive" style="max-height: 520px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Row</th>
+                    <th>Ground Truth</th>
+                    <th>AI Prediction</th>
+                    <th>Match</th>
+                    <th>Confidence</th>
+                    <th>Severity</th>
+                    <th>Policy Triggered</th>
+                    <th>Key Numerical Features</th>
+                  </tr>
+                </thead>
+                <tbody id="test-records-tbody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: OFFICIAL DATASETS & AUDIT -->
+    <section class="tab-pane" id="tab-datasets">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📁 Discovered Dataset Partitions (Official UNB CICIoT2023)</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadDatasetsList()">🔄 Refresh Datasets</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Partition Type</th>
+                  <th>File Size</th>
+                  <th>Relative Path</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="datasets-table-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MODEL TRAINING STUDIO -->
+    <section class="tab-pane" id="tab-train">
+      <div class="grid-cols-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚡ Train AI Classifier with LRRC-FS</span>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Training Dataset Partition:</label>
+              <select id="train-dataset-select" class="form-control">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Task Type:</label>
+                <select id="train-task-type" class="form-control">
+                  <option value="binary" selected>Binary (Benign vs Attack)</option>
+                  <option value="multiclass">Multiclass (8 Attack Categories)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Algorithm:</label>
+                <select id="train-model-name" class="form-control">
+                  <option value="random_forest" selected>Random Forest (Recommended)</option>
+                  <option value="decision_tree">Decision Tree (Ultra Low Latency)</option>
+                  <option value="extra_trees">Extra Trees (High Flood Robustness)</option>
+                  <option value="gradient_boosting">HistGradientBoosting</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Feature Selector:</label>
+                <select id="train-feature-selector" class="form-control">
+                  <option value="lrrc" selected>LRRC-FS (Proprietary IoT Cost-Aware)</option>
+                  <option value="all">All Features (No Selection)</option>
+                  <option value="kbest">SelectKBest (ANOVA F-statistic)</option>
+                  <option value="variance">Variance Threshold</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Top Features Count (k):</label>
+                <input type="number" id="train-n-features" class="form-control" value="15" min="1" max="40">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Sample Limit (Rows):</label>
+                <input type="number" id="train-sample-limit" class="form-control" value="15000" min="1000" max="100000" step="1000">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Imbalance Strategy:</label>
+                <select id="train-resampling" class="form-control">
+                  <option value="none" selected>Baseline (No Resampling)</option>
+                  <option value="under_sample">Random Under-Sampling</option>
+                  <option value="smote">SMOTE Oversampling</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; font-family: var(--font-mono);">
+                <input type="checkbox" id="train-class-weight" style="transform: scale(1.2);"> Use Balanced Class Weighting
+              </label>
+            </div>
+
+            <button class="btn btn-primary" id="btn-start-training" style="width: 100%; margin-top: 0.5rem;">
+              🚀 Start Model Training
+            </button>
+
+            <div id="train-loading-spinner" style="display: none; align-items: center; justify-content: center; gap: 0.75rem; color: var(--neon-cyan); font-family: var(--font-mono); font-size: 0.85rem; margin-top: 1rem;">
+              <span class="pulse-dot"></span> Training classifier with LRRC-FS feature selection... please wait.
+            </div>
+          </div>
+        </div>
+
+        <!-- Training Results Card -->
+        <div class="card" id="train-result-card" style="display: none;">
+          <div class="card-header">
+            <span class="card-title">✅ Training Run Completed Successfully</span>
+          </div>
+          <div class="card-body">
+            <div class="grid-cols-2" style="margin-bottom: 1rem;">
+              <div class="metric-card" style="--accent: var(--neon-green)">
+                <div class="metric-label">Macro F1 Score</div>
+                <div class="metric-value" id="train-res-f1" style="color: var(--neon-green)">0%</div>
+              </div>
+              <div class="metric-card" style="--accent: var(--neon-cyan)">
+                <div class="metric-label">Accuracy</div>
+                <div class="metric-value" id="train-res-acc">0%</div>
+              </div>
+            </div>
+
+            <div style="font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.8; color: var(--text-main);">
+              <div>⏱️ <strong>Training Duration:</strong> <span id="train-res-duration">0s</span></div>
+              <div>⚡ <strong>Inference Latency:</strong> <span id="train-res-latency">0 ms/sample</span></div>
+              <div>📊 <strong>Samples Partition:</strong> <span id="train-res-samples">0</span></div>
+              <div>💾 <strong>Model Artifact:</strong> <span id="train-res-path" style="color: var(--neon-cyan); word-break: break-all;">—</span></div>
+            </div>
+
+            <div style="margin-top: 1.25rem;">
+              <label class="form-label">LRRC-FS Selected Features:</label>
+              <div id="train-res-features" style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.5rem;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: RUN HISTORY -->
+    <section class="tab-pane" id="tab-runs">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📜 Historical AI Training Runs & Empirical Benchmarks</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadRunsList()">🔄 Refresh</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Run ID</th>
+                  <th>Timestamp</th>
+                  <th>Model & Task</th>
+                  <th>Selector (k)</th>
+                  <th>Macro F1</th>
+                  <th>Accuracy</th>
+                  <th>Latency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="runs-table-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: DEFENSE POLICIES -->
+    <section class="tab-pane" id="tab-policies">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Active IoT Defense Policies & Thresholds</h2>
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Automated security response engine matching predicted threat classifications to operational firewall and quarantine actions.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-save-policies">💾 Save Policies</button>
+      </div>
+
+      <div id="policies-list-container">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 7: SYSTEM LOGS -->
+    <section class="tab-pane" id="tab-logs">
+      <div class="card">
+        <div class="card-header">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="card-title">📋 Real-Time Application & Engine Logs</span>
+            <select id="log-severity-filter" class="form-control" style="width: 140px; padding: 0.3rem 0.5rem; font-size: 0.75rem;" onchange="loadLogs()">
+              <option value="">ALL LEVELS</option>
+              <option value="INFO">INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+              <option value="DEBUG">DEBUG</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadLogs()">🔄 Refresh Logs</button>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="log-terminal" id="log-terminal-body">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal for Dataset Audit -->
+  <div id="audit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 1.5rem;">
+    <div class="card" style="width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="card-header">
+        <span class="card-title" id="audit-modal-title">🔍 Dataset Audit Report</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeAuditModal()">✖ Close</button>
+      </div>
+      <div class="card-body" id="audit-modal-body" style="overflow-y: auto;">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer -->
+  <footer class="bottom-footer">
+    <div>
+      DEVRAKSHAK // Offline IoT Intrusion & DDoS Defense System | Powered by CICIoT2023 Official Dataset
+    </div>
+    <div>
+      Web Control Plane: <code>http://localhost:8000/</code>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

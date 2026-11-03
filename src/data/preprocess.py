@@ -115,15 +115,25 @@ class IoTDataPreprocessor(BaseEstimator, TransformerMixin):
         """
         df_clean = self.clean_records(df)
         
-        y: Optional[np.ndarray] = None
+        # Identify target column: exact match first, then case-insensitive alias match
+        target_col = None
         if self.target_column in df_clean.columns:
-            raw_labels = df_clean[self.target_column].astype(str)
+            target_col = self.target_column
+        else:
+            for col in df_clean.columns:
+                if col.lower() in ("label", "class", "attack_type", self.target_column.lower()):
+                    target_col = col
+                    break
+
+        y: Optional[np.ndarray] = None
+        if target_col is not None:
+            raw_labels = df_clean[target_col].astype(str)
             if self.task_type == "binary":
                 mapped = raw_labels.apply(map_to_binary).to_numpy()
             else:
                 mapped = raw_labels.apply(map_to_category).to_numpy()
             y = mapped
-            X = df_clean.drop(columns=[self.target_column])
+            X = df_clean.drop(columns=[target_col])
         else:
             X = df_clean
 
