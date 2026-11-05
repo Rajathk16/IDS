@@ -113,3 +113,32 @@ def test_api_inference_test_in_memory():
     assert summary["total_samples_tested"] == 15
     assert len(data["records"]) == 15
     assert "latency_ms_per_sample" in summary
+
+
+def test_api_settings_and_policies_update_in_memory():
+    """Verify /api/settings GET/POST and /api/policies POST work in-memory."""
+    # Test GET settings
+    handler_get = MockDevRakshakHandler()
+    handler_get._handle_api_get("/api/settings", {})
+    assert handler_get.response_status == 200
+    settings_data = handler_get.get_response_json()
+    assert settings_data["success"] is True
+    assert "default_model" in settings_data["settings"]
+
+    # Test POST policies update
+    handler_post = MockDevRakshakHandler()
+    handler_post._handle_api_post("/api/policies", {
+        "policies": [
+            {
+                "policy_id": "POL-001",
+                "enabled": True,
+                "min_confidence": 0.75,
+                "severity": "CRITICAL"
+            }
+        ]
+    })
+    assert handler_post.response_status == 200
+    pol_data = handler_post.get_response_json()
+    assert pol_data["success"] is True
+    pol001 = next(p for p in pol_data["policies"] if p["policy_id"] == "POL-001")
+    assert pol001["min_confidence"] == 0.75

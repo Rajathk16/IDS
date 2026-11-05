@@ -33,14 +33,24 @@ def split_dataset(
     Returns:
         (df_train, df_test, df_val) where df_val may be empty if val_size <= 0.
     """
-    if target_column not in df.columns:
-        raise ValueError(f"Target column '{target_column}' not found in dataframe.")
+    # Auto-detect target column: exact match first, then case-insensitive alias
+    actual_target = None
+    if target_column in df.columns:
+        actual_target = target_column
+    else:
+        for col in df.columns:
+            if col.lower() in (target_column.lower(), "label", "class", "attack_type"):
+                actual_target = col
+                break
+
+    if not actual_target:
+        raise ValueError(f"Target column '{target_column}' not found in dataframe columns: {list(df.columns[:8])}...")
 
     total_rows = len(df)
     if total_rows < 10:
         raise ValueError(f"Dataset too small to split ({total_rows} rows). Need at least 10 rows.")
 
-    y = df[target_column].astype(str)
+    y = df[actual_target].astype(str)
 
     # Check whether stratification is mathematically possible
     class_counts = y.value_counts()
@@ -69,7 +79,7 @@ def split_dataset(
     df_val = None
     if val_size > 0:
         val_relative_ratio = val_size / (1.0 - test_size)
-        y_train_full = df_train_full[target_column].astype(str)
+        y_train_full = df_train_full[actual_target].astype(str)
         val_stratify = None
         if can_stratify:
             train_class_counts = y_train_full.value_counts()

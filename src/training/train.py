@@ -50,7 +50,7 @@ def get_classifier(
         return ExtraTreesClassifier(n_estimators=50, max_depth=12, min_samples_leaf=2, random_state=random_state, class_weight=cw, n_jobs=-1)
     elif name_clean in ("gradient_boosting", "hist_gb", "gb"):
         # HistGradientBoostingClassifier handles tabular data fast and natively
-        return HistGradientBoostingClassifier(max_iter=50, max_depth=8, random_state=random_state)
+        return HistGradientBoostingClassifier(max_iter=50, max_depth=8, random_state=random_state, class_weight=cw)
     else:
         raise ValueError(
             f"Unsupported model: '{model_name}'. Choose from 'decision_tree', 'random_forest', 'extra_trees', 'gradient_boosting'."
@@ -137,7 +137,8 @@ class TrainedModelBundle:
         selector: BaseEstimator,
         classifier: BaseEstimator,
         labels: List[str],
-        metadata: Dict[str, Any]
+        metadata: Dict[str, Any],
+        model_path: Optional[str] = None
     ):
         self.model_name = model_name
         self.task_type = task_type
@@ -146,6 +147,14 @@ class TrainedModelBundle:
         self.classifier = classifier
         self.labels = labels
         self.metadata = metadata
+        self.model_path = model_path
+
+    @property
+    def selected_features(self) -> List[str]:
+        """Return the selected feature names for this model bundle."""
+        if hasattr(self.selector, "selected_features_") and self.selector.selected_features_:
+            return list(self.selector.selected_features_)
+        return list(self.metadata.get("selected_features", getattr(self.preprocessor, "feature_names_", [])))
 
     def predict(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
         """Run end-to-end inference from raw/aligned features to decoded label strings."""
@@ -172,6 +181,7 @@ class TrainedModelBundle:
         """Persist model bundle with joblib."""
         file_path = Path(file_path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
+        self.model_path = str(file_path)
         bundle_dict = {
             "model_name": self.model_name,
             "task_type": self.task_type,
@@ -212,7 +222,8 @@ class TrainedModelBundle:
             selector=bundle_dict["selector"],
             classifier=bundle_dict["classifier"],
             labels=bundle_dict["labels"],
-            metadata=bundle_dict.get("metadata", {})
+            metadata=bundle_dict.get("metadata", {}),
+            model_path=str(file_path)
         )
 
 
@@ -239,10 +250,17 @@ def train_model(
     # 1. Load data
     df_raw, is_synth, files = load_dataset(data_path, sample_limit=sample_limit)
 
+    # Detect actual target column dynamically
+    actual_target = "label"
+    for cand in ["label", "Label", "LABEL", "class", "Class", "attack_type"]:
+        if cand in df_raw.columns:
+            actual_target = cand
+            break
+
     # 2. Split dataset with leakage resistance safeguards
     df_train, df_test, _ = split_dataset(
         df_raw,
-        target_column="label",
+        target_column=actual_target,
         test_size=settings.test_size,
         val_size=0.0,
         random_seed=random_seed,
@@ -250,7 +268,7 @@ def train_model(
     )
 
     # 3. Fit Preprocessing ONLY on training set
-    preprocessor = IoTDataPreprocessor(task_type=task_type, target_column="label")
+    preprocessor = IoTDataPreprocessor(task_type=task_type, target_column=actual_target)
     X_train_raw, y_train_raw = preprocessor.extract_features_and_target(df_train)
     X_test_raw, y_test_raw = preprocessor.extract_features_and_target(df_test)
 

@@ -83,16 +83,19 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
     def _compute_costs(self, feature_names: List[str]) -> np.ndarray:
         """
         Assign normalized computational extraction cost.
-        Flags and discrete protocol indicators have low cost (0.1 - 0.3);
-        Multi-packet aggregate statistics have higher cost (0.7 - 1.0).
+        Flags and discrete protocol indicators have low cost (0.1 - 0.2);
+        Flow counters and packet lengths have medium cost (0.4 - 0.5);
+        Multi-packet aggregate statistics have highest cost (0.8 - 0.9).
         """
         costs = np.zeros(len(feature_names), dtype=np.float64)
         for i, feat in enumerate(feature_names):
             if feat in HIGH_COST_FEATURES:
                 costs[i] = 0.9
-            elif "count" in feat:
+            elif "count" in feat or feat in ("Header_Length", "Number", "Time_To_Live"):
                 costs[i] = 0.5
-            elif "flag" in feat or feat in ("TCP", "UDP", "ICMP", "HTTP", "HTTPS", "DNS"):
+            elif "flag" in feat or feat in (
+                "TCP", "UDP", "ICMP", "HTTP", "HTTPS", "DNS", "ARP", "LLC", "IPv", "IGMP", "DHCP", "Telnet", "SMTP", "SSH", "IRC"
+            ):
                 costs[i] = 0.2
             else:
                 costs[i] = 0.4
@@ -142,22 +145,10 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
         for i, name in enumerate(self.feature_names_in_):
             self.cost_scores_[name] = float(costs[i])
 
-        # 3. Compute absolute correlation matrix for redundancy penalty
-        # Handle zero-variance columns safely
-        std_devs = np.std(X_mat, axis=0)
-        valid_cols = std_devs > 1e-9
-
-        # Clip values to avoid runtime warnings in correlation
-        corr_matrix = np.zeros((n_features, n_features), dtype=np.float64)
-        for i in range(n_features):
-            for j in range(i, n_features):
-                if valid_cols[i] and valid_cols[j]:
-                    c = np.corrcoef(X_mat[:, i], X_mat[:, j])[0, 1]
-                    corr_val = 0.0 if np.isnan(c) else abs(float(c))
-                else:
-                    corr_val = 0.0
-                corr_matrix[i, j] = corr_val
-                corr_matrix[j, i] = corr_val
+        # 3. Vectorized absolute correlation matrix computation for redundancy penalty
+        with np.errstate(all="ignore"):
+            corr_raw = np.corrcoef(X_mat, rowvar=False)
+        corr_matrix = np.nan_to_num(np.abs(corr_raw), nan=0.0, posinf=0.0, neginf=0.0)
 
         # 4. Greedy Selection Procedure
         selected_indices: List[int] = []

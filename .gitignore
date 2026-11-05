@@ -9,10 +9,23 @@ venv/
 .venv/
 ENV/
 
+# Frontend & Node Dependencies
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+frontend/out/
+.swc/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Data and Artifacts (large raw CSV files shouldn't be committed)
 data/raw/**/*.csv
 data/raw/*.csv
 data/raw/CICIOT23/
+data/raw/MERGED_CSV/
 data/processed/**/*.csv
 data/processed/*.csv
 data/processed/*.parquet
@@ -22,8 +35,10 @@ data/synthetic/*.csv
 # Trained Models & SQLite DBs
 models/*.joblib
 models/*.pkl
+*.joblib
 *.sqlite
 *.db
+*.sqlite3
 
 # Logs and Run Results
 *.log

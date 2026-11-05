@@ -272,10 +272,48 @@ class EventStore:
             """)
             severity_counts = {row["severity"]: row["cnt"] for row in cursor.fetchall()}
 
+        # Timeline query for Traffic Overview chart
+        cursor.execute("""
+            SELECT 
+                substr(timestamp, 1, 10) as day,
+                SUM(CASE WHEN is_attack = 0 THEN 1 ELSE 0 END) as normal_cnt,
+                SUM(CASE WHEN is_attack = 1 AND severity IN ('MEDIUM', 'LOW', 'INFO') THEN 1 ELSE 0 END) as suspicious_cnt,
+                SUM(CASE WHEN is_attack = 1 AND severity IN ('CRITICAL', 'HIGH') THEN 1 ELSE 0 END) as malicious_cnt,
+                COUNT(*) as day_total
+            FROM detection_events
+            GROUP BY day
+            ORDER BY day ASC
+            LIMIT 14
+        """)
+        timeline = []
+        for r in cursor.fetchall():
+            timeline.append({
+                "date": r["day"],
+                "normal": int(r["normal_cnt"] or 0),
+                "suspicious": int(r["suspicious_cnt"] or 0),
+                "malicious": int(r["malicious_cnt"] or 0),
+                "total": int(r["day_total"] or 0)
+            })
+
+        # Top attack categories sorted by count
+        top_attacks = []
+        if attack > 0:
+            for cat, cnt in sorted(category_counts.items(), key=lambda x: x[1], reverse=True):
+                top_attacks.append({
+                    "name": cat,
+                    "count": cnt,
+                    "percentage": round((cnt / attack) * 100.0, 1)
+                })
+
         return {
             "total_records_processed": total,
+            "total_events": total,
             "benign_count": benign,
             "attack_count": attack,
+            "total_attacks": attack,
             "category_distribution": category_counts,
-            "severity_distribution": severity_counts
+            "top_attack_categories": top_attacks,
+            "severity_distribution": severity_counts,
+            "by_severity": severity_counts,
+            "timeline": timeline
         }

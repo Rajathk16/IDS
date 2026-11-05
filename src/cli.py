@@ -437,8 +437,8 @@ def main() -> None:
         from src.web.server import run_web_server
         run_web_server(host=args.host, port=args.port)
     elif args.command == "tui":
-        from src.tui.app import run_tui
-        run_tui()
+        print("\n[INFO] The terminal Textual interface has been retired in favor of the Web SOC Dashboard.")
+        print("[INFO] Please run 'start_fullstack.bat' or open http://localhost:3000/ in your browser.\n")
     elif args.command == "synthetic":
         cmd_synthetic(args, engine)
     elif args.command == "discover":

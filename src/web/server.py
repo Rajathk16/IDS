@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
+import shutil
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -34,6 +36,57 @@ from src.training.train import TrainedModelBundle
 
 logger = get_logger("web_server")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def get_system_telemetry() -> Dict[str, Any]:
+    """Return genuine system hardware metrics for CPU, RAM, and Disk."""
+    disk_percent = 0.0
+    disk_used_gb = 0.0
+    disk_total_gb = 0.0
+    try:
+        total, used, free = shutil.disk_usage(".")
+        disk_percent = round((used / total) * 100.0, 1)
+        disk_used_gb = round(used / (1024 ** 3), 1)
+        disk_total_gb = round(total / (1024 ** 3), 1)
+    except Exception:
+        pass
+
+    mem_percent = 0.0
+    mem_total_gb = 0.0
+    mem_avail_gb = 0.0
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            class MEM(ctypes.Structure):
+                _fields_ = [
+                    ('l', ctypes.c_ulong),
+                    ('load', ctypes.c_ulong),
+                    ('tot', ctypes.c_ulonglong),
+                    ('avail', ctypes.c_ulonglong),
+                    ('pf_tot', ctypes.c_ulonglong),
+                    ('pf_avail', ctypes.c_ulonglong),
+                    ('v_tot', ctypes.c_ulonglong),
+                    ('v_avail', ctypes.c_ulonglong),
+                    ('ext', ctypes.c_ulonglong)
+                ]
+            m = MEM()
+            m.l = ctypes.sizeof(MEM)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+            mem_percent = float(m.load)
+            mem_total_gb = round(m.tot / (1024 ** 3), 1)
+            mem_avail_gb = round(m.avail / (1024 ** 3), 1)
+    except Exception:
+        pass
+
+    return {
+        "disk_percent": disk_percent,
+        "disk_used_gb": disk_used_gb,
+        "disk_total_gb": disk_total_gb,
+        "mem_percent": mem_percent,
+        "mem_total_gb": mem_total_gb,
+        "mem_avail_gb": mem_avail_gb,
+        "cpu_threads": os.cpu_count() or 4
+    }
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -176,6 +229,9 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
 
             stats = engine.get_monitor_stats()
             discovered = engine.discover_datasets()
+            total_raw_bytes = sum(p.stat().st_size for p in discovered["raw"])
+            total_raw_gb = round(total_raw_bytes / (1024 ** 3), 2)
+            telemetry = get_system_telemetry()
 
             active_model_name = "None"
             active_task = "None"
@@ -196,11 +252,16 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 "saved_models_count": len(saved_models),
                 "db_path": str(engine.settings.db_path),
                 "db_size_mb": db_size_mb,
-                "total_detection_events": stats.get("total_events", 0),
-                "total_attacks_detected": stats.get("total_attacks", 0),
+                "total_detection_events": stats.get("total_records_processed", 0),
+                "total_attacks_detected": stats.get("attack_count", 0),
+                "total_benign_flows": stats.get("benign_count", 0),
+                "category_distribution": stats.get("category_distribution", {}),
+                "severity_distribution": stats.get("severity_distribution", {}),
                 "total_training_runs": len(engine.list_runs(limit=100)),
                 "raw_datasets_count": len(discovered["raw"]),
                 "synthetic_datasets_count": len(discovered["synthetic"]),
+                "total_dataset_size_gb": total_raw_gb,
+                "system_telemetry": telemetry,
                 "python_version": sys.version.split()[0],
                 "platform": sys.platform,
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -295,9 +356,11 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
 
         elif path == "/api/stats":
             stats = engine.get_monitor_stats()
+            telemetry = get_system_telemetry()
             self._send_json({
                 "success": True,
-                "stats": stats
+                "stats": stats,
+                "system_telemetry": telemetry
             })
 
         elif path == "/api/policies":
@@ -329,6 +392,12 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 "success": True,
                 "total_lines": len(lines),
                 "lines": lines
+            })
+
+        elif path == "/api/settings":
+            self._send_json({
+                "success": True,
+                "settings": engine.settings.model_dump(mode="json")
             })
 
         else:
@@ -583,18 +652,93 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     if pol.policy_id == pid:
                         if "enabled" in item:
                             pol.enabled = bool(item["enabled"])
-                        if "confidence_threshold" in item:
-                            pol.confidence_threshold = float(item["confidence_threshold"])
+                        if "min_confidence" in item:
+                            pol.min_confidence = float(item["min_confidence"])
+                        elif "confidence_threshold" in item:
+                            pol.min_confidence = float(item["confidence_threshold"])
                         if "severity" in item:
                             pol.severity = str(item["severity"])
-                        if "action" in item:
-                            pol.action = str(item["action"])
+                        if "description" in item:
+                            pol.description = str(item["description"])
 
             save_policies(policies_config)
             self._send_json({
                 "success": True,
                 "message": "Security policies updated successfully.",
                 "policies": [p.model_dump() for p in policies_config.policies]
+            })
+
+        elif path == "/api/experiments/selectors":
+            data_path_str = body.get("data_path")
+            task_type = body.get("task_type", "binary")
+            model_name = body.get("model_name", "random_forest")
+            n_features = int(body.get("n_features", 15))
+            sample_limit = int(body.get("sample_limit", 5000))
+
+            data_path = Path(data_path_str) if data_path_str else None
+            results = engine.run_selector_comparison(
+                data_path=data_path,
+                task_type=task_type,
+                model_name=model_name,
+                n_features=n_features,
+                sample_limit=sample_limit
+            )
+            self._send_json({
+                "success": True,
+                "comparison": results
+            })
+
+        elif path == "/api/experiments/imbalance":
+            data_path_str = body.get("data_path")
+            task_type = body.get("task_type", "binary")
+            model_name = body.get("model_name", "random_forest")
+            sample_limit = int(body.get("sample_limit", 5000))
+
+            data_path = Path(data_path_str) if data_path_str else None
+            results = engine.run_imbalance_comparison(
+                data_path=data_path,
+                task_type=task_type,
+                model_name=model_name,
+                sample_limit=sample_limit
+            )
+            self._send_json({
+                "success": True,
+                "comparison": results
+            })
+
+        elif path == "/api/upload":
+            filename = body.get("filename", "uploaded_traffic.csv")
+            content = body.get("content", "")
+
+            # Security sanitization
+            safe_name = Path(filename).name
+            if not safe_name.lower().endswith(".csv"):
+                safe_name += ".csv"
+
+            upload_dir = PROJECT_ROOT / "data" / "raw" / "uploads"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            target_path = upload_dir / safe_name
+
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.write(content)
+
+            # Quick inspect
+            sample = pd.read_csv(target_path, nrows=5)
+            self._send_json({
+                "success": True,
+                "file_name": safe_name,
+                "path": str(target_path),
+                "columns": list(sample.columns),
+                "columns_count": len(sample.columns)
+            })
+
+        elif path == "/api/settings":
+            updates = body.get("settings", {})
+            from src.core.settings import update_settings
+            updated = update_settings(updates)
+            self._send_json({
+                "success": True,
+                "settings": updated.model_dump(mode="json")
             })
 
         elif path == "/api/synthetic":

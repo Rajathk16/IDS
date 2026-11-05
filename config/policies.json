@@ -5,7 +5,7 @@
       "name": "Critical Mirai Botnet Activity",
       "enabled": true,
       "attack_category": "Mirai",
-      "min_confidence": 0.6,
+      "min_confidence": 0.75,
       "severity": "CRITICAL",
       "description": "Immediately flag Mirai greeth/greip/udpplain botnet traffic as CRITICAL."
     },

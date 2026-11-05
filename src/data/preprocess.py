@@ -163,10 +163,18 @@ class IoTDataPreprocessor(BaseEstimator, TransformerMixin):
         # Fit scaler on imputed X
         self.scaler_.fit(X_imputed)
 
-        # Fit label encoder if target provided
+        # Fit label encoder with comprehensive canonical class coverage
         classes: List[str] = []
         if y is not None:
-            self.label_encoder_.fit(y)
+            unique_y = set(str(c) for c in y)
+            if self.task_type == "binary":
+                unique_y.update(["BENIGN", "ATTACK"])
+            else:
+                from src.data.taxonomy import get_supported_categories
+                unique_y.update(get_supported_categories())
+                unique_y.add("Unknown_Attack")
+            all_classes = sorted(list(unique_y))
+            self.label_encoder_.fit(all_classes)
             classes = [str(c) for c in self.label_encoder_.classes_]
 
         # Construct Manifest
@@ -214,10 +222,20 @@ class IoTDataPreprocessor(BaseEstimator, TransformerMixin):
         return self.fit(X, y).transform(X)
 
     def encode_target(self, y: np.ndarray) -> np.ndarray:
-        """Encode categorical labels into integer indices."""
+        """Encode categorical labels into integer indices with unseen label resilience."""
         if not self.is_fitted_:
             raise RuntimeError("Preprocessor must be fitted before encoding targets.")
-        return self.label_encoder_.transform(y)
+        known_classes = set(self.label_encoder_.classes_)
+        safe_y = []
+        for val in y:
+            s = str(val)
+            if s in known_classes:
+                safe_y.append(s)
+            elif "Unknown_Attack" in known_classes:
+                safe_y.append("Unknown_Attack")
+            else:
+                safe_y.append(self.label_encoder_.classes_[0])
+        return self.label_encoder_.transform(safe_y)
 
     def decode_target(self, y_indices: np.ndarray) -> np.ndarray:
         """Decode integer indices back into original class label strings."""

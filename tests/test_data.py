@@ -106,3 +106,18 @@ def test_dataset_audit(tmp_path: Path):
     settings_dir = Path("results/reports")
     reports = list(settings_dir.glob("audit_report_*.md"))
     assert len(reports) > 0
+
+
+def test_split_dataset_uppercase_label():
+    """Verify that split_dataset auto-detects uppercase 'Label' column without error."""
+    from src.data.split import split_dataset
+    df = pd.DataFrame({
+        "feat1": list(range(50)),
+        "feat2": list(range(50, 100)),
+        "Label": ["Benign"] * 25 + ["DDoS"] * 25
+    })
+    # Should succeed even if default target_column="label" is requested
+    df_train, df_test, _ = split_dataset(df, target_column="label", test_size=0.2, val_size=0.0, stratify=True)
+    assert len(df_train) == 40
+    assert len(df_test) == 10
+    assert "Label" in df_train.columns

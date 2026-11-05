@@ -1,24 +1,36 @@
-LK'I;[
-    @n>:>echo off
-title DEVRAKSHAK // AI IoT Intrusion & DDoS Defense System (Web Dashboard)
+@echo off
+title DEVRAKSHAK // Next.js AI IoT Intrusion & DDoS Defense System
 echo =========================================================================
-echo  DEVRAKSHAK // AI IoT Intrusion & DDoS Defense System
+echo  DEVRAKSHAK // Next.js + Python Full-Stack Defense System
 echo  Dataset: Official CICIoT2023 Platform (63 Merged CSV Partitions)
 echo =========================================================================
 echo.
-echo  [1] Starting Local Web Server at http://localhost:8000 ...
-echo  [2] Opening your default web browser automatically...
-echo.
 
-:: Automatically open default browser after 1 second delay
-start "" cmd /c "timeout /t 1 /nobreak >nul & start http://localhost:8000/"
-
-:: Start python server
-if exist "%~dp0.venv\Scripts\python.exe" (
-    "%~dp0.venv\Scripts\python.exe" "%~dp0src\web_server.py" --host 127.0.0.1 --port 8000
-) else (
-    uv run python src/web_server.py --host 127.0.0.1 --port 8000
+:: 1. Check if Next.js dependencies are installed
+if not exist "%~dp0frontend\node_modules" (
+    echo [INFO] First-time setup: Installing Next.js dependencies in frontend...
+    cd /d "%~dp0frontend"
+    call npm install
+    cd /d "%~dp0"
+    echo [INFO] Next.js dependencies installed!
+    echo.
 )
 
-pause
+:: 2. Start Python AI Backend in background on port 8000
+echo [1/3] Starting Python AI & REST API Backend on http://127.0.0.1:8000 ...
+if exist "%~dp0.venv\Scripts\python.exe" (
+    start "DEVRAKSHAK Python AI Engine" cmd /k ""%~dp0.venv\Scripts\python.exe" "%~dp0src\web_server.py" --host 127.0.0.1 --port 8000"
+) else (
+    start "DEVRAKSHAK Python AI Engine" cmd /k "uv run python "%~dp0src\web_server.py" --host 127.0.0.1 --port 8000"
+)
 
+:: 3. Launch default browser to Next.js app on port 3000
+echo [2/3] Waiting for servers to initialize...
+start "" cmd /c "timeout /t 4 /nobreak >nul & start http://localhost:3000/"
+
+:: 4. Start Next.js Development Server on port 3000
+echo [3/3] Starting Next.js Frontend on http://localhost:3000 ...
+cd /d "%~dp0frontend"
+call npm run dev
+
+pause

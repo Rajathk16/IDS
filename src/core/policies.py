@@ -210,8 +210,10 @@ def get_policies() -> PolicyConfig:
     return _policies_instance
 
 
-def save_policies() -> None:
+def save_policies(config: Optional[PolicyConfig] = None) -> None:
     """Persist the global PolicyConfig."""
     global _policies_instance
+    if config is not None:
+        _policies_instance = config
     if _policies_instance is not None:
         _policies_instance.save_to_file()
