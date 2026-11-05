@@ -21,8 +21,7 @@ logger = get_logger("lrrc_feature_selector")
 # Summary dispersion and floating-point statistical metrics incur higher computational cost
 # than simple fixed bitmask header flags.
 HIGH_COST_FEATURES = {
-    "Variance", "Covariance", "Radius", "Magnitue", "Tot sum", "Tot size",
-    "AVG", "Std", "Min", "Max", "IAT", "flow_duration", "Duration", "Rate", "Srate", "Drate"
+    "Variance", "Covariance", "Radius", "Magnitue"
 }
 
 
@@ -34,7 +33,7 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
       Score(f) = w_rel * R_norm(f) - w_red * D(f, S) - w_cost * C_norm(f)
     
     Where:
-      - R_norm(f) in [0, 1]: Target relevance via normalized ANOVA F-statistic or Mutual Information.
+      - R_norm(f) in [0, 1]: Target relevance via log-normalized ANOVA F-statistic or Mutual Information.
       - D(f, S) in [0, 1]: Mean absolute Pearson correlation between candidate f and already selected features S.
       - C_norm(f) in [0, 1]: Computational extraction/inference cost penalty.
       - w_rel, w_red, w_cost: User-configurable non-negative weights.
@@ -46,9 +45,9 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
     def __init__(
         self,
         n_features_to_select: int = 15,
-        relevance_weight: float = 0.5,
+        relevance_weight: float = 0.6,
         redundancy_weight: float = 0.3,
-        cost_weight: float = 0.2,
+        cost_weight: float = 0.1,
         relevance_metric: str = "f_classif",  # "f_classif" or "mutual_info"
         random_state: int = 42
     ):
@@ -72,10 +71,9 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
     def _compute_relevance(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         """Compute statistical relevance between candidate features and target."""
         if self.relevance_metric == "mutual_info":
-            # Mutual information classification
             scores = mutual_info_classif(X, y, random_state=self.random_state)
         else:
-            # Default: ANOVA F-statistic (fast, robust for continuous network flow metrics)
+            # Default: ANOVA F-statistic
             f_scores, _ = f_classif(X, y)
             scores = np.nan_to_num(f_scores, nan=0.0, posinf=1e6, neginf=0.0)
         return scores
@@ -83,22 +81,24 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
     def _compute_costs(self, feature_names: List[str]) -> np.ndarray:
         """
         Assign normalized computational extraction cost.
-        Flags and discrete protocol indicators have low cost (0.1 - 0.2);
-        Flow counters and packet lengths have medium cost (0.4 - 0.5);
-        Multi-packet aggregate statistics have highest cost (0.8 - 0.9).
+        Flags and discrete protocol indicators have low cost (0.10);
+        Flow counters, rates, and packet lengths have realistic cost (0.25);
+        Expensive multi-packet polynomial dispersion metrics have highest cost (0.60).
         """
         costs = np.zeros(len(feature_names), dtype=np.float64)
         for i, feat in enumerate(feature_names):
             if feat in HIGH_COST_FEATURES:
-                costs[i] = 0.9
+                costs[i] = 0.60
+            elif feat in ("Rate", "Tot sum", "Tot size", "AVG", "Min", "Max", "Std", "Duration"):
+                costs[i] = 0.25
             elif "count" in feat or feat in ("Header_Length", "Number", "Time_To_Live"):
-                costs[i] = 0.5
+                costs[i] = 0.25
             elif "flag" in feat or feat in (
                 "TCP", "UDP", "ICMP", "HTTP", "HTTPS", "DNS", "ARP", "LLC", "IPv", "IGMP", "DHCP", "Telnet", "SMTP", "SSH", "IRC"
             ):
-                costs[i] = 0.2
+                costs[i] = 0.10
             else:
-                costs[i] = 0.4
+                costs[i] = 0.20
         return costs
 
     def fit(self, X: Union[pd.DataFrame, np.ndarray], y: np.ndarray) -> LRRCSFeatureSelector:
@@ -125,16 +125,29 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
             X_mat[inds] = np.take(np.nan_to_num(col_medians, nan=0.0), inds[1])
 
         logger.info(
-            f"Fitting LRRC-FS: selecting {k} of {n_features} features "
+            f"Fitting LRRC-FS: selecting {k} of {n_features} features on {n_samples:,} samples "
             f"(w_rel={self.relevance_weight}, w_red={self.redundancy_weight}, w_cost={self.cost_weight})"
         )
 
-        # 1. Compute and normalize relevance
-        raw_relevance = self._compute_relevance(X_mat, y)
-        min_rel = np.min(raw_relevance)
-        max_rel = np.max(raw_relevance)
+        # For large flow volumes (e.g., 600,000 or 1,000,000 flows), compute relevance
+        # and correlation on a representative 100,000 sample for sub-second execution
+        if n_samples > 100_000:
+            rng = np.random.RandomState(self.random_state)
+            sub_indices = rng.choice(n_samples, size=100_000, replace=False)
+            X_calc = X_mat[sub_indices]
+            y_calc = y[sub_indices]
+        else:
+            X_calc = X_mat
+            y_calc = y
+
+        # 1. Compute and normalize relevance using log1p scaling to prevent extreme outliers
+        # (like 'Number' with F > 500,000) from crushing continuous rate and volumetric features
+        raw_relevance = self._compute_relevance(X_calc, y_calc)
+        log_relevance = np.log1p(np.maximum(0.0, raw_relevance))
+        min_rel = np.min(log_relevance)
+        max_rel = np.max(log_relevance)
         denom = (max_rel - min_rel) if (max_rel - min_rel) > 1e-9 else 1.0
-        norm_relevance = (raw_relevance - min_rel) / denom
+        norm_relevance = (log_relevance - min_rel) / denom
 
         for i, name in enumerate(self.feature_names_in_):
             self.relevance_scores_[name] = float(raw_relevance[i])
@@ -147,7 +160,7 @@ class LRRCSFeatureSelector(BaseEstimator, TransformerMixin):
 
         # 3. Vectorized absolute correlation matrix computation for redundancy penalty
         with np.errstate(all="ignore"):
-            corr_raw = np.corrcoef(X_mat, rowvar=False)
+            corr_raw = np.corrcoef(X_calc, rowvar=False)
         corr_matrix = np.nan_to_num(np.abs(corr_raw), nan=0.0, posinf=0.0, neginf=0.0)
 
         # 4. Greedy Selection Procedure

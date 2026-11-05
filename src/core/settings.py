@@ -64,9 +64,9 @@ class AppSettings(BaseSettings):
     validation_size: float = Field(default=0.1, description="Proportion of dataset for validation split")
 
     # LRRC-FS Algorithm Parameters
-    lrrc_relevance_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    lrrc_relevance_weight: float = Field(default=0.6, ge=0.0, le=1.0)
     lrrc_redundancy_weight: float = Field(default=0.3, ge=0.0, le=1.0)
-    lrrc_cost_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    lrrc_cost_weight: float = Field(default=0.1, ge=0.0, le=1.0)
     lrrc_max_features: int = Field(default=15, ge=1, le=46)
 
     # Default Training & Inference Settings

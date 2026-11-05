@@ -38,19 +38,45 @@ def get_classifier(
     random_state: int = 42,
     use_class_weight: bool = False
 ) -> BaseEstimator:
-    """Instantiate a bounded-complexity scikit-learn classifier."""
+    """Instantiate a bounded-complexity, memory-efficient scikit-learn classifier."""
     cw = "balanced" if use_class_weight else None
     name_clean = model_name.lower().strip()
 
     if name_clean in ("decision_tree", "dt"):
-        return DecisionTreeClassifier(max_depth=12, min_samples_leaf=3, random_state=random_state, class_weight=cw)
+        return DecisionTreeClassifier(max_depth=14, min_samples_leaf=3, random_state=random_state, class_weight=cw)
     elif name_clean in ("random_forest", "rf"):
-        return RandomForestClassifier(n_estimators=50, max_depth=12, min_samples_leaf=2, random_state=random_state, class_weight=cw, n_jobs=-1)
+        # Use max_samples=0.25 (subbagging) for multi-core parallel tree generation without RAM thrashing on large datasets
+        return RandomForestClassifier(
+            n_estimators=60,
+            max_depth=16,
+            min_samples_leaf=2,
+            max_samples=0.25,
+            random_state=random_state,
+            class_weight=cw,
+            n_jobs=-1
+        )
     elif name_clean in ("extra_trees", "et"):
-        return ExtraTreesClassifier(n_estimators=50, max_depth=12, min_samples_leaf=2, random_state=random_state, class_weight=cw, n_jobs=-1)
+        return ExtraTreesClassifier(
+            n_estimators=60,
+            max_depth=16,
+            min_samples_leaf=2,
+            max_samples=0.25,
+            bootstrap=True,
+            random_state=random_state,
+            class_weight=cw,
+            n_jobs=-1
+        )
     elif name_clean in ("gradient_boosting", "hist_gb", "gb"):
-        # HistGradientBoostingClassifier handles tabular data fast and natively
-        return HistGradientBoostingClassifier(max_iter=50, max_depth=8, random_state=random_state, class_weight=cw)
+        # HistGradientBoostingClassifier natively bins continuous flow features into 256 uint8 bins
+        # Extremely fast for 50,000 to 1,000,000 flows
+        return HistGradientBoostingClassifier(
+            max_iter=80,
+            max_depth=12,
+            min_samples_leaf=20,
+            max_leaf_nodes=63,
+            random_state=random_state,
+            class_weight=cw
+        )
     else:
         raise ValueError(
             f"Unsupported model: '{model_name}'. Choose from 'decision_tree', 'random_forest', 'extra_trees', 'gradient_boosting'."

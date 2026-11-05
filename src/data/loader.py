@@ -148,9 +148,15 @@ def load_dataset(
             break
 
         # Read in chunks or slice
+        def _optimize_chunk(c: pd.DataFrame) -> pd.DataFrame:
+            float_cols = c.select_dtypes(include=["float64"]).columns
+            if len(float_cols) > 0:
+                c[float_cols] = c[float_cols].astype("float32")
+            return c
+
         if remaining is not None and remaining <= chunk_size:
             chunk = pd.read_csv(file_path, nrows=remaining)
-            dfs.append(chunk)
+            dfs.append(_optimize_chunk(chunk))
             total_loaded += len(chunk)
         else:
             # Chunked iteration to respect memory limits
@@ -160,7 +166,7 @@ def load_dataset(
                     to_take = min(len(chunk), remaining - total_loaded)
                     if to_take < len(chunk):
                         chunk = chunk.iloc[:to_take]
-                dfs.append(chunk)
+                dfs.append(_optimize_chunk(chunk))
                 total_loaded += len(chunk)
                 if remaining is not None and total_loaded >= remaining:
                     break
