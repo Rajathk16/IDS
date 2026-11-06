@@ -198,3 +198,4 @@ export default function CyberGlobe3D() {
     </div>
   );
 }
+

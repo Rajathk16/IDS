@@ -782,3 +782,15 @@ def run_web_server(host: str = "127.0.0.1", port: int = 8000) -> None:
     finally:
         httpd.server_close()
 
+
+if __name__ == "__main__":
+    import argparse
+    from src.core.logging_config import setup_logging
+    setup_logging()
+    parser = argparse.ArgumentParser(description="DEVRAKSHAK Web Dashboard API Server")
+    parser.add_argument("--host", default="127.0.0.1", help="Host interface (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8000, help="Port number (default: 8000)")
+    args = parser.parse_args()
+    run_web_server(host=args.host, port=args.port)
+
+
