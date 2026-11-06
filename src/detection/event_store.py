@@ -29,9 +29,11 @@ class EventStore:
         return conn
 
     def _init_db(self) -> None:
-        """Create tables if they do not exist."""
+        """Create tables if they do not exist with high-throughput SQLite pragma."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute("PRAGMA journal_mode = WAL;")
+            cursor.execute("PRAGMA synchronous = NORMAL;")
             # Training runs table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS training_runs (
@@ -164,9 +166,12 @@ class EventStore:
         return runs
 
     def save_detection_events(self, events: List[DetectionEvent]) -> int:
-        """Batch insert detection events."""
+        """Batch insert detection events (capped to top 500 to protect SQLite disk I/O)."""
         if not events:
             return 0
+
+        # Cap batch to prevent disk latency spikes during interactive testing
+        batch = events[:500] if len(events) > 500 else events
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -184,7 +189,7 @@ class EventStore:
                     e.policy_triggered,
                     json.dumps(e.raw_features) if e.raw_features else None
                 )
-                for e in events
+                for e in batch
             ]
             cursor.executemany("""
                 INSERT OR REPLACE INTO detection_events (
@@ -195,8 +200,8 @@ class EventStore:
             """, records)
             conn.commit()
 
-        logger.info(f"Persisted {len(events)} detection event(s) into SQLite store.")
-        return len(events)
+        logger.info(f"Persisted {len(batch)} detection event(s) into SQLite store.")
+        return len(batch)
 
     def list_detection_events(
         self,

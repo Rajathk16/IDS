@@ -11,6 +11,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingMixIn
 import sys
+import threading
 import time
 import traceback
 from typing import Any, Dict, List, Optional
@@ -36,6 +37,7 @@ from src.training.train import TrainedModelBundle
 
 logger = get_logger("web_server")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+_TRAIN_LOCK = threading.Lock()
 
 
 def get_system_telemetry() -> Dict[str, Any]:
@@ -111,17 +113,20 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
         logger.debug(f"{self.address_string()} - {format % args}")
 
     def _send_json(self, data: Any, status: int = 200) -> None:
-        """Send a JSON formatted response."""
-        encoded = json.dumps(data, default=str).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-        self.end_headers()
-        self.wfile.write(encoded)
+        """Send a JSON formatted response with socket disconnect resilience."""
+        try:
+            encoded = json.dumps(data, default=str).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+            self.wfile.write(encoded)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError) as conn_err:
+            logger.warning(f"Client disconnected before response could be delivered: {conn_err}")
 
     def _send_error_json(self, message: str, status: int = 400, details: Optional[str] = None) -> None:
         """Send an error payload with status code."""
@@ -149,9 +154,14 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 self._handle_api_get(path, query)
             else:
                 self._handle_static_get(path)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError) as exc:
+            logger.warning(f"Client connection aborted during GET {path}: {exc}")
         except Exception as exc:
             logger.error(f"Error handling GET {path}: {exc}", exc_info=True)
-            self._send_error_json(str(exc), status=500, details=traceback.format_exc())
+            try:
+                self._send_error_json(str(exc), status=500, details=traceback.format_exc())
+            except Exception:
+                pass
 
     def do_POST(self) -> None:
         """Handle POST requests for actions and APIs."""
@@ -171,9 +181,14 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 self._handle_api_post(path, body)
             else:
                 self._send_error_json(f"Unknown endpoint: {path}", status=404)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError) as exc:
+            logger.warning(f"Client connection aborted during POST {path}: {exc}")
         except Exception as exc:
             logger.error(f"Error handling POST {path}: {exc}", exc_info=True)
-            self._send_error_json(str(exc), status=500, details=traceback.format_exc())
+            try:
+                self._send_error_json(str(exc), status=500, details=traceback.format_exc())
+            except Exception:
+                pass
 
     def _handle_static_get(self, path: str) -> None:
         """Serve frontend static HTML, CSS, and JS files from STATIC_DIR."""
@@ -472,8 +487,8 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     self._send_error_json("No trained model bundle available. Please run training first.", status=400)
                     return
 
-            # Read sample rows
-            df_sample = pd.read_csv(target_file, nrows=sample_limit)
+            # Read sample rows with high-performance C engine
+            df_sample = pd.read_csv(target_file, nrows=sample_limit, engine="c")
             
             # Check for ground truth column
             ground_truth_raw = None
@@ -499,6 +514,17 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             ground_truth_categories = {}
             predicted_categories = {}
 
+            # Fast pre-extraction of key features for the top 200 rows using to_dict
+            feature_candidates = [
+                fc for fc in [
+                    "Header_Length", "Protocol Type", "Time_To_Live", "Rate",
+                    "Tot sum", "syn_count", "ack_count", "AVG", "Variance", "IAT"
+                ] if fc in df_sample.columns
+            ]
+            key_feats_preview = []
+            if feature_candidates:
+                key_feats_preview = df_sample[feature_candidates].head(200).round(2).to_dict(orient="records")
+
             for idx, event in enumerate(events):
                 raw_gt = ground_truth_raw[idx] if ground_truth_raw else None
                 
@@ -506,7 +532,6 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 if raw_gt is not None:
                     if predictor.bundle.task_type == "binary":
                         mapped_gt = map_to_binary(raw_gt)
-                        # Check match
                         is_match = (mapped_gt.upper() == event.predicted_label.upper())
                     else:
                         mapped_gt = map_to_category(raw_gt)
@@ -528,34 +553,25 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 if raw_gt:
                     ground_truth_categories[mapped_gt] = ground_truth_categories.get(mapped_gt, 0) + 1
 
-                # Extract key packet feature values for display
-                key_feats = {}
-                feature_candidates = [
-                    "Header_Length", "Protocol Type", "Time_To_Live", "Rate",
-                    "Tot sum", "syn_count", "ack_count", "AVG", "Variance", "IAT"
-                ]
-                for fc in feature_candidates:
-                    if fc in df_sample.columns:
-                        v = df_sample.iloc[idx][fc]
-                        if pd.notna(v) and np.isfinite(v):
-                            key_feats[fc] = round(float(v), 2)
-
-                records.append({
-                    "row_index": idx,
-                    "ground_truth_raw": raw_gt,
-                    "ground_truth_mapped": mapped_gt,
-                    "predicted_label": event.predicted_label,
-                    "confidence": event.confidence,
-                    "is_attack": event.is_attack,
-                    "attack_category": event.attack_category,
-                    "severity": event.severity,
-                    "policy_triggered": event.policy_triggered,
-                    "is_match": is_match,
-                    "key_features": key_feats
-                })
+                # Only construct record payload for the top 200 items to avoid building 50,000 dicts
+                if idx < 200:
+                    records.append({
+                        "row_index": idx,
+                        "ground_truth_raw": raw_gt,
+                        "ground_truth_mapped": mapped_gt,
+                        "predicted_label": event.predicted_label,
+                        "confidence": event.confidence,
+                        "is_attack": event.is_attack,
+                        "attack_category": event.attack_category,
+                        "severity": event.severity,
+                        "policy_triggered": event.policy_triggered,
+                        "is_match": is_match,
+                        "key_features": key_feats_preview[idx] if idx < len(key_feats_preview) else {}
+                    })
 
             has_ground_truth = (ground_truth_raw is not None)
-            accuracy = round((correct_count / len(records)) * 100.0, 2) if (has_ground_truth and records) else None
+            total_tested = len(events)
+            accuracy = round((correct_count / total_tested) * 100.0, 2) if (has_ground_truth and total_tested) else None
 
             response = {
                 "success": True,
@@ -565,13 +581,13 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     "model_used": predictor.bundle.model_name,
                     "model_task": predictor.bundle.task_type,
                     "model_labels": predictor.bundle.labels,
-                    "total_samples_tested": len(records),
+                    "total_samples_tested": total_tested,
                     "attacks_detected": attack_count,
                     "benign_detected": benign_count,
                     "has_ground_truth": has_ground_truth,
                     "accuracy_percentage": accuracy,
                     "correct_predictions": correct_count if has_ground_truth else None,
-                    "misclassified": (len(records) - correct_count) if has_ground_truth else None,
+                    "misclassified": (total_tested - correct_count) if has_ground_truth else None,
                     "total_time_seconds": elapsed_sec,
                     "latency_ms_per_sample": latency_ms,
                     "predicted_distribution": predicted_categories,
@@ -582,40 +598,50 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             self._send_json(response)
 
         elif path == "/api/train":
-            dataset_path_str = body.get("dataset_path")
-            task_type = body.get("task_type", "binary")
-            model_name = body.get("model_name", "random_forest")
-            feature_selector = body.get("feature_selector", "lrrc")
-            n_features = int(body.get("n_features", 15))
-            sample_limit = int(body.get("sample_limit", 15000))
-            resampling_strategy = body.get("resampling_strategy")
-            use_class_weight = bool(body.get("use_class_weight", False))
+            if not _TRAIN_LOCK.acquire(blocking=False):
+                self._send_error_json(
+                    "Model training is currently running in the background. Please wait for the current run to finish.",
+                    status=409
+                )
+                return
 
-            dataset_path = Path(dataset_path_str) if dataset_path_str else None
+            try:
+                dataset_path_str = body.get("dataset_path")
+                task_type = body.get("task_type", "binary")
+                model_name = body.get("model_name", "random_forest")
+                feature_selector = body.get("feature_selector", "lrrc")
+                n_features = int(body.get("n_features", 15))
+                sample_limit = int(body.get("sample_limit", 15000))
+                resampling_strategy = body.get("resampling_strategy")
+                use_class_weight = bool(body.get("use_class_weight", False))
 
-            logger.info(
-                f"Web UI requested model training: {model_name} ({task_type}) on "
-                f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}"
-            )
+                dataset_path = Path(dataset_path_str) if dataset_path_str else None
 
-            bundle, run = engine.train(
-                data_path=dataset_path,
-                task_type=task_type,
-                model_name=model_name,
-                feature_selector=feature_selector,
-                n_features=n_features,
-                sample_limit=sample_limit,
-                resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
-                use_class_weight=use_class_weight
-            )
+                logger.info(
+                    f"Web UI requested model training: {model_name} ({task_type}) on "
+                    f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}"
+                )
 
-            self._send_json({
-                "success": True,
-                "run": run.model_dump(),
-                "model_path": bundle.model_path,
-                "features_selected": bundle.selected_features,
-                "labels": bundle.labels
-            })
+                bundle, run = engine.train(
+                    data_path=dataset_path,
+                    task_type=task_type,
+                    model_name=model_name,
+                    feature_selector=feature_selector,
+                    n_features=n_features,
+                    sample_limit=sample_limit,
+                    resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
+                    use_class_weight=use_class_weight
+                )
+
+                self._send_json({
+                    "success": True,
+                    "run": run.model_dump(),
+                    "model_path": bundle.model_path,
+                    "features_selected": bundle.selected_features,
+                    "labels": bundle.labels
+                })
+            finally:
+                _TRAIN_LOCK.release()
 
         elif path == "/api/models/activate":
             model_name_or_path = body.get("model_path")

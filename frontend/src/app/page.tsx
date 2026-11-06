@@ -127,6 +127,7 @@ export default function DevrakshakDashboard() {
   const [trainSampleLimit, setTrainSampleLimit] = useState<number>(15000);
   const [trainLoading, setTrainLoading] = useState<boolean>(false);
   const [latestRun, setLatestRun] = useState<any>(null);
+  const [show3DRadar, setShow3DRadar] = useState<boolean>(false);
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
@@ -138,7 +139,7 @@ export default function DevrakshakDashboard() {
 
   const handleSelectFlowPreset = (count: number, model: string, label: string) => {
     setTrainSampleLimit(count);
-    setSampleLimit(count > 5000 ? 5000 : count);
+    setSampleLimit(count);
     setTrainModel(model);
     showToast(`Flows configured to ${label}! Model set to ${model === "gradient_boosting" ? "HistGradientBoosting" : "Random Forest"}.`, "success");
   };
@@ -479,24 +480,41 @@ export default function DevrakshakDashboard() {
               </span>
             </div>
 
-            {/* Quick Offline Run Button */}
-            <button
-              onClick={() => handleQuickOfflineRun(selectedDataset, 500)}
-              disabled={testLoading}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm shadow-indigo-600/30 transition text-xs disabled:opacity-50"
-            >
-              {testLoading ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Inspecting...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5 fill-white" />
-                  <span>Quick Test (500 flows)</span>
-                </>
-              )}
-            </button>
+            {/* Quick Flow Evaluation Dropdown & Run Button */}
+            <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-lg bg-[#111726] border border-[#1f293d]">
+              <select
+                value={sampleLimit}
+                onChange={(e) => setSampleLimit(Number(e.target.value))}
+                className="bg-transparent text-slate-200 text-xs font-mono px-2 py-1 focus:outline-none cursor-pointer"
+                title="Select number of flows to evaluate"
+              >
+                <option value={500} className="bg-[#0b0f19] text-white">500 Flows (Instant)</option>
+                <option value={5000} className="bg-[#0b0f19] text-white">5,000 Flows (Fast)</option>
+                <option value={50000} className="bg-[#0b0f19] text-white">50,000 Flows (50K)</option>
+                <option value={100000} className="bg-[#0b0f19] text-white">1,00,000 Flows (1 Lakh)</option>
+                <option value={200000} className="bg-[#0b0f19] text-white">2,00,000 Flows (2 Lakh)</option>
+                <option value={400000} className="bg-[#0b0f19] text-white">4,00,000 Flows (4 Lakh)</option>
+                <option value={600000} className="bg-[#0b0f19] text-white">6,00,000 Flows (6 Lakh)</option>
+                <option value={1000000} className="bg-[#0b0f19] text-white">10,00,000 Flows (10 Lakh / 1M)</option>
+              </select>
+              <button
+                onClick={() => handleQuickOfflineRun(selectedDataset, sampleLimit)}
+                disabled={testLoading}
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm shadow-indigo-600/30 transition text-xs disabled:opacity-50"
+              >
+                {testLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    <span>Run Check</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Export Report Blue Button (Exact match) */}
             <button
@@ -545,6 +563,19 @@ export default function DevrakshakDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* 3D Threat Radar Toggle Button */}
+              <button
+                onClick={() => setShow3DRadar(!show3DRadar)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
+                  show3DRadar
+                    ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm shadow-cyan-500/20"
+                    : "bg-[#111726] border-[#1f293d] text-slate-300 hover:text-white hover:bg-[#161f33]"
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{show3DRadar ? "Hide 3D Radar" : "3D Threat Radar"}</span>
+              </button>
+
               {/* Date Filter */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111726] border border-[#1f293d] text-xs text-slate-300">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -886,82 +917,89 @@ export default function DevrakshakDashboard() {
                   </div>
                 </div>
 
-                {/* Right Column: 3D Threat Radar + System Status Progress Bars */}
-                <div className="space-y-6">
-                  {/* Interactive 3D Cyber Threat Radar Globe */}
-                  <div className="nids-card p-4 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-cyan-400" />
-                        3D Cyber Threat Radar
-                      </h3>
-                      <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-0.5 rounded">
-                        INTERACTIVE 3D
-                      </span>
-                    </div>
-                    <CyberGlobe3D />
+                {/* System Status Progress Bars (1/3 Width - Exact Match to Screenshot) */}
+                <div className="nids-card p-5 space-y-4 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
+                    <h3 className="text-sm font-bold text-white">System Status</h3>
+                    <button
+                      onClick={() => setActiveTab("system")}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                    >
+                      View Details
+                    </button>
                   </div>
 
-                  {/* System Status Progress Bars (Exact Match to Visual) */}
-                  <div className="nids-card p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
-                      <h3 className="text-sm font-bold text-white">System Status</h3>
-                      <button
-                        onClick={() => setActiveTab("system")}
-                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-                      >
-                        View Details
-                      </button>
+                  <div className="space-y-4 pt-1 text-xs">
+                    {/* CPU Usage */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-slate-300">
+                        <span>CPU Usage</span>
+                        <span className="font-mono text-slate-400">32%</span>
+                      </div>
+                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                        <div className="bg-blue-500 h-full rounded-full" style={{ width: "32%" }}></div>
+                      </div>
                     </div>
 
-                    <div className="space-y-4 pt-1 text-xs">
-                      {/* CPU Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-slate-300">
-                          <span>CPU Usage</span>
-                          <span className="font-mono text-slate-400">32%</span>
-                        </div>
-                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                          <div className="bg-blue-500 h-full rounded-full" style={{ width: "32%" }}></div>
-                        </div>
+                    {/* Memory Usage */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-slate-300">
+                        <span>Memory Usage</span>
+                        <span className="font-mono text-slate-400">65%</span>
                       </div>
-
-                      {/* Memory Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Memory Usage</span>
-                          <span className="font-mono text-slate-400">65%</span>
-                        </div>
-                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                          <div className="bg-purple-500 h-full rounded-full" style={{ width: "65%" }}></div>
-                        </div>
+                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                        <div className="bg-purple-500 h-full rounded-full" style={{ width: "65%" }}></div>
                       </div>
+                    </div>
 
-                      {/* Disk Usage */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Disk Usage</span>
-                          <span className="font-mono text-slate-400">78%</span>
-                        </div>
-                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                          <div className="bg-orange-500 h-full rounded-full" style={{ width: "78%" }}></div>
-                        </div>
+                    {/* Disk Usage */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-slate-300">
+                        <span>Disk Usage</span>
+                        <span className="font-mono text-slate-400">78%</span>
                       </div>
+                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                        <div className="bg-orange-500 h-full rounded-full" style={{ width: "78%" }}></div>
+                      </div>
+                    </div>
 
-                      {/* Network I/O */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Network I/O</span>
-                          <span className="font-mono text-slate-400">45%</span>
-                        </div>
-                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: "45%" }}></div>
-                        </div>
+                    {/* Network I/O */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-slate-300">
+                        <span>Network I/O</span>
+                        <span className="font-mono text-slate-400">45%</span>
+                      </div>
+                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: "45%" }}></div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Collapsible 3D Cyber Threat Radar (When Toggled) */}
+              {show3DRadar && (
+                <div className="nids-card p-5 space-y-3 border-cyan-500/40 shadow-xl shadow-cyan-950/40 animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-cyan-400" />
+                      3D Cyber Threat Radar // Real-Time Threat Vectors
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-0.5 rounded">
+                        INTERACTIVE HOLOGRAPHIC 3D
+                      </span>
+                      <button
+                        onClick={() => setShow3DRadar(false)}
+                        className="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-[#1e293b]"
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+                  </div>
+                  <CyberGlobe3D />
+                </div>
+              )}
             </div>
           )}
 
@@ -1029,12 +1067,14 @@ export default function DevrakshakDashboard() {
                       onChange={(e) => setSampleLimit(Number(e.target.value))}
                       className="w-full bg-[#0b0f19] border border-[#1f293d] rounded p-2 text-white text-xs font-mono"
                     >
-                      <option value={100}>100 Flows</option>
-                      <option value={200}>200 Flows (Recommended)</option>
-                      <option value={500}>500 Flows</option>
-                      <option value={1000}>1,000 Flows</option>
-                      <option value={5000}>5,000 Flows</option>
-                      <option value={50000}>50,000 Flows (50k Bulk Audit)</option>
+                      <option value={500}>500 Flows (Instant Preview)</option>
+                      <option value={5000}>5,000 Flows (Fast Test)</option>
+                      <option value={50000}>50,000 Flows (50K Benchmark)</option>
+                      <option value={100000}>1,00,000 Flows (1 Lakh Flow Check)</option>
+                      <option value={200000}>2,00,000 Flows (2 Lakh Deep Check)</option>
+                      <option value={400000}>4,00,000 Flows (4 Lakh Extended Check)</option>
+                      <option value={600000}>6,00,000 Flows (6 Lakh Partition Check)</option>
+                      <option value={1000000}>10,00,000 Flows (10 Lakh / 1M Enterprise Stress)</option>
                     </select>
                   </div>
 
@@ -1188,11 +1228,12 @@ export default function DevrakshakDashboard() {
                       onChange={(e) => setTrainSampleLimit(Number(e.target.value))}
                       className="w-full bg-[#0b0f19] border border-[#1f293d] rounded p-2 text-white font-mono text-xs"
                     >
-                      <option value={15000}>15,000 Flows (Quick Evaluation)</option>
-                      <option value={50000}>50,000 Flows (50k Standard Benchmark)</option>
-                      <option value={100000}>100,000 Flows (100k Multi-Partition)</option>
-                      <option value={600000}>600,000 Flows (6 Lakh Deep Flow Training)</option>
-                      <option value={1000000}>1,000,000 Flows (10 Lakh Massive Scale)</option>
+                      <option value={50000}>50,000 Flows (50K Standard Benchmark)</option>
+                      <option value={100000}>1,00,000 Flows (1 Lakh Fast Training)</option>
+                      <option value={200000}>2,00,000 Flows (2 Lakh Deep Multi-Threat Check)</option>
+                      <option value={400000}>4,00,000 Flows (4 Lakh Extended Scale)</option>
+                      <option value={600000}>6,00,000 Flows (6 Lakh Partition Training)</option>
+                      <option value={1000000}>10,00,000 Flows (10 Lakh / 1M Enterprise Stress)</option>
                     </select>
                   </div>
 

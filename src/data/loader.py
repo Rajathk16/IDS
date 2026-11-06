@@ -156,13 +156,20 @@ def load_dataset(
                 c[float_cols] = c[float_cols].astype("float32")
             return c
 
-        if remaining is not None and remaining <= chunk_size:
-            chunk = pd.read_csv(file_path, nrows=remaining)
+        if len(files) == 1 and remaining is not None:
+            # Direct fast C-engine load for single-file evaluation/training (avoids chunk overhead)
+            chunk = pd.read_csv(file_path, nrows=remaining, engine="c")
+            dfs.append(_optimize_chunk(chunk))
+            total_loaded += len(chunk)
+            break
+        elif remaining is not None and remaining <= chunk_size:
+            chunk = pd.read_csv(file_path, nrows=remaining, engine="c")
             dfs.append(_optimize_chunk(chunk))
             total_loaded += len(chunk)
         else:
-            # Chunked iteration to respect memory limits
-            reader = pd.read_csv(file_path, chunksize=chunk_size)
+            # Chunked iteration with 100k effective chunk size to balance RAM and I/O throughput
+            effective_chunk = max(chunk_size, 100000)
+            reader = pd.read_csv(file_path, chunksize=effective_chunk, engine="c")
             for chunk in reader:
                 if remaining is not None:
                     to_take = min(len(chunk), remaining - total_loaded)

@@ -62,6 +62,12 @@ class OfflinePredictor:
         events: List[DetectionEvent] = []
         confidences = np.max(probs, axis=1)
 
+        # Fast pre-extraction of key features for sample events to avoid df.iloc overhead
+        key_cols = [k for k in ["flow_duration", "Rate", "Tot sum", "syn_count", "ack_count"] if k in df.columns]
+        sample_feats_list: List[Dict[str, float]] = []
+        if key_cols:
+            sample_feats_list = df[key_cols].head(500).round(2).to_dict(orient="records")
+
         for i in range(len(df)):
             pred_label = str(preds[i])
             conf = float(confidences[i])
@@ -76,13 +82,7 @@ class OfflinePredictor:
             # Evaluate policy
             severity, triggered_policy = self.policies.evaluate(cat, conf)
 
-            # Sample key numeric features for audit record
-            sample_feats = {}
-            for k in ["flow_duration", "Rate", "Tot sum", "syn_count", "ack_count"]:
-                if k in df.columns:
-                    val = df.iloc[i][k]
-                    if pd.notna(val) and np.isfinite(val):
-                        sample_feats[k] = float(val)
+            sample_feats = sample_feats_list[i] if i < len(sample_feats_list) else None
 
             event = DetectionEvent(
                 source_file=source_name,
@@ -93,7 +93,7 @@ class OfflinePredictor:
                 attack_category=cat,
                 severity=severity,
                 policy_triggered=triggered_policy,
-                raw_features=sample_feats if sample_feats else None
+                raw_features=sample_feats
             )
             events.append(event)
 
@@ -107,7 +107,9 @@ class OfflinePredictor:
         df_result["policy_triggered"] = [e.policy_triggered for e in events]
 
         if record_events:
-            self.event_store.save_detection_events(events)
+            # Persist up to 500 representative events to avoid SQLite I/O blocking on large runs
+            events_to_store = events[:500] if len(events) > 500 else events
+            self.event_store.save_detection_events(events_to_store)
 
         logger.info(
             f"Inference complete: processed {len(df):,} records in {elapsed:.3f}s "

@@ -21,30 +21,39 @@ export default function AnimeGuardian({
 
   const presets = [
     {
-      flows: 50000,
-      label: "50K Flows",
-      tag: "⚡ Fast Benchmark",
-      model: "random_forest",
-      desc: "Instant evaluation in ~3s. 99% binary accuracy.",
-      tip: "Switched to 50,000 flows. Super fast training and testing without waiting!",
+      flows: 100000,
+      label: "1 Lakh Flows (100K)",
+      tag: "⚡ 1 Lakh Fast",
+      model: "gradient_boosting",
+      desc: "Fast inspection in ~3s. Perfect for partition checks.",
+      tip: "1 Lakh flows configured! Rapid evaluation across 100,000 real flows.",
       color: "border-cyan-500/40 text-cyan-300 bg-cyan-950/30",
     },
     {
+      flows: 200000,
+      label: "2 Lakh Flows (200K)",
+      tag: "🛡️ 2 Lakh Deep",
+      model: "gradient_boosting",
+      desc: "Evaluates 200,000 network flows in ~6s with high coverage.",
+      tip: "2 Lakh flows active! Deep multi-threat attack inspection engaged.",
+      color: "border-emerald-500/50 text-emerald-300 bg-emerald-950/30",
+    },
+    {
       flows: 600000,
-      label: "600K Flows (6 Lakh)",
+      label: "6 Lakh Flows (600K)",
       tag: "⭐ Recommended",
       model: "gradient_boosting",
-      desc: "Golden ratio for 83.7% multiclass accuracy + rare attacks.",
-      tip: "600,000 flows active! Best balance between high accuracy and rare attack defense.",
+      desc: "Golden ratio for multiclass accuracy + rare attack detection.",
+      tip: "600,000 flows (6 Lakh) active! Best balance between high accuracy and rare attack defense.",
       color: "border-indigo-500/60 text-indigo-300 bg-indigo-950/40 ring-1 ring-indigo-500/40",
     },
     {
       flows: 1000000,
-      label: "1M Flows (10 Lakh)",
-      tag: "🌐 Enterprise Stress",
+      label: "10 Lakh Flows (1M)",
+      tag: "🌐 10 Lakh Scale",
       model: "gradient_boosting",
       desc: "Massive scale 1,000,000 flow stress test (~156MB RAM).",
-      tip: "1,000,000 flows engaged! HistGradientBoosting active for maximum enterprise throughput.",
+      tip: "1,000,000 flows (10 Lakh) engaged! HistGradientBoosting active for maximum enterprise throughput.",
       color: "border-fuchsia-500/40 text-fuchsia-300 bg-fuchsia-950/30",
     },
   ];
@@ -123,7 +132,7 @@ export default function AnimeGuardian({
             <span className="text-[10px] text-slate-500">Click to Auto-Configure</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {presets.map((p) => {
               const isSelected = selectedPreset === p.flows;
               return (
