@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-An exhaustive technical audit of the **DEVRAKSHAK** AI-based IoT Intrusion and DDoS Detection System was conducted. The project has a solid foundational architecture with high-quality algorithms (specifically the proprietary LRRC-FS selector, balanced ensemble classifiers, and a clean SQLite persistence layer). 
+An exhaustive technical audit of the **DEVRAKSHAK** AI-based IoT Intrusion and DDoS Detection System was conducted. The project has a solid foundational architecture with high-quality algorithms (specifically the LRRC-FS selector, balanced ensemble classifiers, and a clean SQLite persistence layer). 
 
 However, several **CRITICAL** and **HIGH** severity bugs, schema mismatches, and data leakage/minority-class evaluation risks were identified that hinder reliable operation on the newly added official CICIoT2023 dataset (`data/raw/MERGED_CSV/`, 63 files, ~9.4 GB). Furthermore, the web frontend required architectural elevation from a dark cyberpunk style to an enterprise Security Operations Center (SOC) dashboard.
 

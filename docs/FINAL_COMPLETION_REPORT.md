@@ -14,7 +14,7 @@ This report certifies the successful execution, technical remediation, validatio
 
 All requirements outlined in the Master Instruction across **Phases 1 through 10** have been systematically fulfilled without shortcuts, synthetic placeholders, or algorithmic replacements. The legacy terminal-centric architecture has been successfully transitioned to a production-grade, enterprise **Security Operations Center (SOC) Web-Based Platform** featuring a **Next.js 14 App Router frontend** and a multi-threaded **Python REST API backend**.
 
-The entire pipeline was audited and verified against the newly ingested official **CICIoT2023 dataset** (`data/raw/MERGED_CSV/Merged*.csv`, 63 partition files totaling ~9.4 GB). All 32 automated test cases passed with a **100% success rate**.
+The entire pipeline was audited and verified against the newly ingested official **CICIoT2023 dataset** (`data/raw/Merged*.csv`, 63 partition files totaling ~9.4 GB). All 36 automated test cases passed with a **100% success rate**.
 
 ---
 
@@ -27,7 +27,7 @@ The entire pipeline was audited and verified against the newly ingested official
 | **Phase 3** | Systematic Defect Resolution & Pipeline Hardening | Source files (`src/data/`, `src/training/`, `src/web/`) | **COMPLETED & VERIFIED** |
 | **Phase 4** | Professional Web-Based Cybersecurity SOC Dashboard | `frontend/` (Next.js 14) & `src/web/static/` | **COMPLETED & VERIFIED** |
 | **Phase 5** | Empirical Model Evaluation & Research Reporting | `docs/MODEL_EVALUATION_REPORT.md` | **COMPLETED & VERIFIED** |
-| **Phase 6** | Novelty and Algorithmic Contribution Analysis | `docs/PROJECT_NOVELTY_AND_CONTRIBUTION.md` | **COMPLETED & VERIFIED** |
+| **Phase 6** | Algorithmic Contribution and Formulation Analysis | `docs/PROJECT_NOVELTY_AND_CONTRIBUTION.md` | **COMPLETED & VERIFIED** |
 | **Phase 7** | Model Selection Rationale & Alternatives Comparison | `docs/MODEL_SELECTION_RATIONALE.md` | **COMPLETED & VERIFIED** |
 | **Phase 8** | Complete Software QA & Test Suite Verification | `docs/TESTING_REPORT.md` | **COMPLETED & VERIFIED** |
 | **Phase 9** | Comprehensive Project Documentation Overhaul | `README.md` | **COMPLETED & VERIFIED** |
@@ -95,22 +95,27 @@ All metrics below are genuine empirical results evaluated on held-out test split
 - **False Positive Rate (FPR):** **0.00%** (0 false alarms out of 41 verified benign flows)
 - **True Positive Recall:** **98.05%** (3,882 attacks intercepted out of 3,959)
 - **Inference Latency:** **0.0024 ms per sample** (2.4 microseconds)
-- **Core Throughput:** **416,666 packets/sec per core**
 
 ### 4.2 Multiclass 8-Category Threat Detection
 - **Evaluated Threat Families:** `Benign`, `DDoS`, `DoS`, `Mirai`, `Recon`, `Spoofing`, `Web`, `BruteForce`
 - **Accuracy:** **62.76% – 78.05%** (higher with larger sample training)
-- **Weighted F1:** **0.6569 – 0.7974**
+- **Weighted F1:** **0.6569 – 79.74%**
 - **DDoS Flood F1:** **0.77** (Precision: 0.85, Recall: 0.70)
 - **Benign Traffic F1:** **0.57** (Precision: 0.63, Recall: 0.53)
 - **Spoofing / MITM F1:** **0.45** (Recall: 0.57)
 - **Reconnaissance F1:** **0.42** (Precision: 0.51, Recall: 0.35)
-- **Minority Attacks (`BruteForce`, `Web`):** 0.00 F1 without aggressive resampling due to natural 1,950:1 class imbalance (<0.05% of dataset). Mitigated via policy triggers (POL-003, POL-007).
+- **Minority Attacks (`BruteForce`, `Web`):** 0.00 F1 without aggressive resampling due to natural class imbalance (<0.05% of dataset). Policies fire on model predictions; they cannot compensate for missed detections if the model fails to classify a class.
 
 ### 4.3 LRRC-FS Benchmarks vs. Baselines
 - **Feature Space Reduction:** Reduced feature count from **39 to 15 features (61.5% reduction)**.
 - **Training Acceleration:** Random Forest trained in **0.383s** on LRRC-FS features (19.0% faster than All Features at 0.473s).
 - **Accuracy Retention:** Maintained **98.08% test accuracy** (a mere 0.3% delta from the full 39-feature model).
+
+### 4.4 Scientific Hardening and Protocol Updates
+- **Statistical Rigor:** Added exact Clopper-Pearson 95% binomial confidence intervals for FPR reporting (`src/training/stats_utils.py`).
+- **Leak-Free Data Pipeline:** Implemented `src/data/build_dataset.py` with full duplicate row removal, partition-level train/test separation, and natural test distribution.
+- **LRRC-FS 4-Term Redesign:** Enhanced LRRC-FS with bootstrap selection stability ($w_{\text{stab}}$) and explicit hierarchical cost tiers (0.2, 0.4, 0.6, 0.8, 0.9).
+- **Multi-Seed Evaluation & Feature Curve:** Added `src/training/run_experiments.py` and `src/training/feature_curve.py` for comprehensive ablation across feature subsets $k \in [5, 39]$.
 
 ---
 
@@ -144,13 +149,13 @@ Open any modern web browser to:
 ```cmd
 uv run pytest
 ```
-*Expected Result:* **32 passed, 3 skipped in ~18 seconds**.
+*Expected Result:* **36 passed in ~4 seconds**.
 
 ---
 
 ## 6. Recommendations for Future Work
 
-1. **Hardware In-Line Sniffing:** Flash the serialized `.joblib` model bundles onto an embedded edge router (e.g., Raspberry Pi 5 or OpenWrt gateway) and bind to physical network interfaces via Scapy or Libpcap.
-2. **eBPF Kernel Bypassing:** Implement an eBPF (Extended Berkeley Packet Filter) kernel hook to extract the 15 LRRC-FS packet features directly inside the Linux network stack without copying packets to user space.
-3. **Continuous Zero-Day Model Retraining:** Schedule an automated background worker to compact SQLite detection logs and retrain models incrementally when novel attack distributions emerge.
+1. **In-Line Sniffing:** Deploy model bundles on network gateways and bind to physical network interfaces via Scapy or Libpcap.
+2. **Kernel Processing:** Explore packet processing pipelines to extract flow features efficiently in the network stack.
+3. **Continuous Retraining:** Schedule background updates to retrain models incrementally when new attack distributions emerge.
 

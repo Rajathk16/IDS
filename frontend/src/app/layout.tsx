@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DEVRAKSHAK // AI Intrusion & DDoS Defense System",
-  description: "DEVRAKSHAK: AI-Based Intrusion and DDoS Detection System for IoT Networks (CICIoT2023)",
+  title: "DEVRAKSHAK // AI Network Intrusion & DDoS Defense System",
+  description: "AI-Based Network Intrusion and DDoS Detection Platform (CICIoT2023, offline)",
 };
 
 export default function RootLayout({
@@ -12,36 +12,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" style={{ overflowX: "clip" }}>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Suppress third-party browser extension errors (e.g. MetaMask inpage.js) from triggering Next.js dev overlay
+              // Suppress browser extension collisions
               if (typeof window !== "undefined") {
                 window.addEventListener("unhandledrejection", function(event) {
                   var reason = event && event.reason;
                   var msg = (reason && reason.message) || String(reason || "");
-                  var stack = (reason && reason.stack) || "";
-                  if (
-                    msg.indexOf("MetaMask") !== -1 ||
-                    msg.indexOf("inpage.js") !== -1 ||
-                    stack.indexOf("chrome-extension") !== -1 ||
-                    stack.indexOf("inpage.js") !== -1
-                  ) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                  }
-                }, true);
-
-                window.addEventListener("error", function(event) {
-                  var msg = (event && event.message) || "";
-                  var filename = (event && event.filename) || "";
-                  if (
-                    msg.indexOf("MetaMask") !== -1 ||
-                    filename.indexOf("chrome-extension") !== -1 ||
-                    filename.indexOf("inpage.js") !== -1
-                  ) {
+                  if (msg.indexOf("MetaMask") !== -1 || msg.indexOf("inpage.js") !== -1) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                   }
@@ -51,7 +32,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[#0b0f19] text-slate-100 min-h-screen antialiased overflow-x-hidden">
+      <body className="bg-base-bg text-content-primary min-h-screen antialiased overflow-x-clip">
         {children}
       </body>
     </html>
