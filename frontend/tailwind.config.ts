@@ -9,24 +9,36 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cyber: {
-          bg: "#070a13",
-          surface: "#0b1120",
-          card: "#0f172a",
-          border: "#1e293b",
-          highlight: "#334155",
+        base: {
+          bg: "var(--color-bg-base)",
+          surface: "var(--color-bg-surface)",
+          elevated: "var(--color-bg-elevated)",
+          hover: "var(--color-bg-hover)",
         },
-        neon: {
-          cyan: "#00f0ff",
-          green: "#10b981",
-          red: "#ef4444",
-          amber: "#f59e0b",
-          purple: "#a855f7",
-          magenta: "#ec4899",
+        border: {
+          subtle: "var(--color-border-subtle)",
+          strong: "var(--color-border-strong)",
+        },
+        content: {
+          primary: "var(--color-text-primary)",
+          secondary: "var(--color-text-secondary)",
+          tertiary: "var(--color-text-tertiary)",
+        },
+        status: {
+          success: "var(--color-status-success)",
+          warning: "var(--color-status-warning)",
+          danger: "var(--color-status-danger)",
+          info: "var(--color-status-info)",
+        },
+        brand: {
+          DEFAULT: "var(--color-accent)",
+          hover: "var(--color-accent-hover)",
+          muted: "var(--color-accent-muted)",
         },
       },
       fontFamily: {
-        mono: ['"SF Mono"', "Menlo", "Monaco", "Consolas", '"Liberation Mono"', '"Courier New"', "monospace"],
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
       },
     },
   },
@@ -34,4 +46,3 @@ const config: Config = {
 };
 
 export default config;
-

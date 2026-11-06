@@ -22,8 +22,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Data and Artifacts (large raw CSV files shouldn't be committed)
-data/raw/**/*.csv
-data/raw/*.csv
+data/raw/*
+!data/raw/README.md
 data/raw/CICIOT23/
 data/raw/MERGED_CSV/
 data/processed/**/*.csv

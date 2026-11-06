@@ -1,51 +1,149 @@
+/* Hallmark · theme: obsidian-terminal · genre: modern-minimal · scope: app */
+/* critique: Professional security operations dashboard with unified tokens, high-density telemetry, and no generic AI gradients */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg-main: #0b0f19;
-  --bg-card: #111726;
-  --bg-sidebar: #0d121f;
-  --border-subtle: #1e293b;
+  --color-bg-base: #090d16;
+  --color-bg-surface: #0f1523;
+  --color-bg-elevated: #151d30;
+  --color-bg-hover: #1b263e;
+
+  --color-border-subtle: #1c2638;
+  --color-border-strong: #2a374f;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #60728c;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-muted: #1e3a8a;
+
+  --color-status-success: #10b981;
+  --color-status-warning: #f59e0b;
+  --color-status-danger: #ef4444;
+  --color-status-info: #06b6d4;
+  --color-status-purple: #7c3aed;
+
+  --color-toast-success-bg: #0b291e;
+  --color-toast-success-border: rgba(16, 185, 129, 0.4);
+  --color-toast-success-text: #a7f3d0;
+
+  --color-toast-error-bg: #2d1115;
+  --color-toast-error-border: rgba(239, 68, 68, 0.4);
+  --color-toast-error-text: #fecdd3;
+
+  --color-toast-info-bg: #0f1f3d;
+  --color-toast-info-border: rgba(37, 99, 235, 0.4);
+  --color-toast-info-text: #bfdbfe;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+html,
 body {
-  background-color: #0b0f19;
-  color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overflow-x: hidden;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+  min-height: 100vh;
+  caret-color: var(--color-accent);
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+::selection {
+  background-color: var(--color-accent-muted);
+  color: var(--color-text-primary);
 }
 
-::-webkit-scrollbar-track {
-  background: #0d121f;
+/* Instant accessible focus indicator */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+button:active,
+a:active {
+  transform: translateY(1px);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
+/* Tabular figures for telemetry alignment */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-.nids-card {
-  background-color: #111726;
-  border: 1px solid #1f293d;
-  border-radius: 0.65rem;
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.nids-card-hover:hover {
-  border-color: #2e3d57;
-  transition: all 0.2s ease-in-out;
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+/* Disciplined panel component with explicit text color */
+.panel {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.5rem;
+}
+
+.panel-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.panel-body {
+  padding: 1.25rem;
+}
+
+/* Interactive transitions without transition: all */
+.interactive-transition {
+  transition-property: background-color, border-color, color, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-success {
+  background-color: var(--color-toast-success-bg);
+  border-color: var(--color-toast-success-border);
+  color: var(--color-toast-success-text);
+}
+
+.toast-error {
+  background-color: var(--color-toast-error-bg);
+  border-color: var(--color-toast-error-border);
+  color: var(--color-toast-error-text);
+}
+
+.toast-info {
+  background-color: var(--color-toast-info-bg);
+  border-color: var(--color-toast-info-border);
+  color: var(--color-toast-info-text);
 }

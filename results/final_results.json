@@ -1,0 +1,145 @@
+{
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "results": {
+    "8class_random_forest_class_weight_balanced": {
+      "accuracy": {
+        "mean": 0.5825,
+        "std": 0.0021
+      },
+      "balanced_accuracy": {
+        "mean": 0.4852,
+        "std": 0.0022
+      },
+      "macro_f1": {
+        "mean": 0.3848,
+        "std": 0.0024
+      },
+      "weighted_f1": {
+        "mean": 0.6377,
+        "std": 0.0022
+      },
+      "mcc": {
+        "mean": 0.3771,
+        "std": 0.0016
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "8class_random_forest_plain": {
+      "accuracy": {
+        "mean": 0.5824,
+        "std": 0.0014
+      },
+      "balanced_accuracy": {
+        "mean": 0.4848,
+        "std": 0.0015
+      },
+      "macro_f1": {
+        "mean": 0.3842,
+        "std": 0.0016
+      },
+      "weighted_f1": {
+        "mean": 0.6378,
+        "std": 0.0017
+      },
+      "mcc": {
+        "mean": 0.377,
+        "std": 0.001
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "8class_random_forest_smote": {
+      "accuracy": {
+        "mean": 0.583,
+        "std": 0.0013
+      },
+      "balanced_accuracy": {
+        "mean": 0.4879,
+        "std": 0.0035
+      },
+      "macro_f1": {
+        "mean": 0.3854,
+        "std": 0.003
+      },
+      "weighted_f1": {
+        "mean": 0.6386,
+        "std": 0.0014
+      },
+      "mcc": {
+        "mean": 0.3772,
+        "std": 0.0011
+      },
+      "latency_ms": {
+        "mean": 0.0015,
+        "std": 0.0003
+      }
+    },
+    "8class_random_forest_undersampling": {
+      "accuracy": {
+        "mean": 0.5835,
+        "std": 0.0011
+      },
+      "balanced_accuracy": {
+        "mean": 0.4836,
+        "std": 0.005
+      },
+      "macro_f1": {
+        "mean": 0.3861,
+        "std": 0.0017
+      },
+      "weighted_f1": {
+        "mean": 0.6391,
+        "std": 0.0013
+      },
+      "mcc": {
+        "mean": 0.3781,
+        "std": 0.0008
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "binary_random_forest_standard": {
+      "accuracy": {
+        "mean": 0.9865,
+        "std": 0.0001
+      },
+      "balanced_accuracy": {
+        "mean": 0.77,
+        "std": 0.0016
+      },
+      "macro_f1": {
+        "mean": 0.8359,
+        "std": 0.0011
+      },
+      "weighted_f1": {
+        "mean": 0.9848,
+        "std": 0.0001
+      },
+      "mcc": {
+        "mean": 0.6959,
+        "std": 0.0015
+      },
+      "latency_ms": {
+        "mean": 0.0007,
+        "std": 0.0001
+      },
+      "fpr": {
+        "mean": 0.4585,
+        "std": 0.0032
+      }
+    }
+  }
+}

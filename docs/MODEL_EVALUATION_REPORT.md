@@ -1,123 +1,96 @@
-# DEVRAKSHAK: Empirical Model Evaluation and Performance Report
-**Document Version:** 1.0.0  
-**Project:** AI-Based Intrusion and DDoS Detection System for IoT Networks  
-**Dataset:** Official University of New Brunswick CICIoT2023 (`data/raw/MERGED_CSV/Merged01.csv` partition)  
-**Evaluation Standard:** Independent Held-Out Test Partitions (20% Stratified Test Split, Zero Data Leakage)  
+# AI-Based Network Intrusion and DDoS Detection (CICIoT2023, offline)
+## Empirical Model Evaluation and Performance Report
+
+**Document Version:** 2.0.0  
+**Project:** AI-Based Network Intrusion and DDoS Detection (CICIoT2023, offline)  
+**Dataset:** Official University of New Brunswick CICIoT2023 (63 CSV files in `data/raw/`, ~9.4 GB total)  
+**Evaluation Standard:** Independent Held-Out Test Partitions (`Merged54`–`Merged63`, 100,000 flows natural distribution, zero leakage)  
 **Date:** November 2026  
-**Auditor:** Senior ML Engineer & Cybersecurity Researcher
 
 ---
 
 ## 1. Executive Summary
 
-This evaluation report presents the authentic empirical performance benchmarks of the **DEVRAKSHAK** intrusion and DDoS detection pipeline on the official CICIoT2023 dataset. The evaluation rigorously inspects both **Binary Classification** (discriminating `BENIGN` network traffic from malicious cyberattacks) and **Multiclass Classification** (categorizing network flows into 8 canonical IoT threat families).
+This report presents the empirical performance benchmarks of the **DEVRAKSHAK** intrusion detection pipeline on the CICIoT2023 dataset. The evaluation rigorously inspects both **Binary Classification** (`BENIGN` vs. `ATTACK`) and **Multiclass Classification** (8 canonical threat families).
 
-All experiments were executed on genuine held-out test splits with strict isolation: preprocessing transformations, median imputations, standardizations, feature selection (LRRC-FS), and class balancing strategies were fitted **exclusively on the training partitions**. Test sets remained completely untouched until final scoring.
+All experiments were executed on genuine held-out test splits with strict file-level isolation: preprocessing transformations, median imputations, standardizations, and feature selection (LRRC-FS) were fitted **exclusively on the training partitions (`Merged01`–`Merged53`)**. The test pool (`Merged54`–`Merged63`) remained completely untouched until final scoring.
 
-### High-Level Summary Matrix
+### Multi-Seed Empirical Summary Matrix (5 Seeds, Mean ± Std)
 
-| Metric | Binary Random Forest (LRRC-FS 15 Feats) | Multiclass Random Forest (LRRC-FS 15 Feats) |
+| Metric | Binary Random Forest (LRRC-FS 15 Feats) | Multiclass Random Forest (LRRC-FS 15 Feats, Plain) |
 | :--- | :--- | :--- |
-| **Test Set Size** | 4,000 flows | 5,000 flows |
-| **Accuracy** | **98.08%** | **62.76% – 78.05%** |
-| **Macro Precision** | **0.8654** | **0.3601** |
-| **Macro Recall** | **0.8351** | **0.3712** |
-| **Macro F1-Score** | **0.8497** | **0.3532 – 0.5063** |
-| **Weighted F1-Score** | **0.9832** | **0.6569 – 0.7974** |
-| **False Positive Rate (FPR)** | **0.00%** (0 false alarms / 118 benign) | **0.84%** (minority benign confusion) |
-| **Inference Latency** | **0.0024 ms/sample** | **0.0218 ms/sample** |
-| **Max Throughput** | **416,666 packets/sec/core** | **45,871 packets/sec/core** |
+| **Test Set Size** | 100,000 flows (held-out files) | 100,000 flows (held-out files) |
+| **Accuracy** | **98.65% ± 0.01%** | **58.24% ± 0.14%** |
+| **Balanced Accuracy** | **77.00% ± 0.16%** | **48.48% ± 0.15%** |
+| **Macro F1-Score** | **0.8359 ± 0.0011** | **0.3842 ± 0.0016** |
+| **Weighted F1-Score** | **0.9848 ± 0.0001** | **0.6378 ± 0.0017** |
+| **Matthews Corr. (MCC)**| **0.6959 ± 0.0015** | **0.3770 ± 0.0010** |
+| **False Positive Rate (FPR)** | **45.85% ± 0.32%** (1,208 / 2,634 benign) | N/A (8-class taxonomy) |
+| **Prediction Latency**| **0.0007 ± 0.0001 ms/flow** (~0.7 µs/flow) | **0.0014 ± 0.0001 ms/flow** (~1.4 µs/flow) |
 | **Features Utilized** | 15 / 39 (61.5% reduction) | 15 / 39 (61.5% reduction) |
 
 ---
 
 ## 2. Binary Intrusion Detection Evaluation (`BENIGN` vs. `ATTACK`)
 
-### 2.1 Confusion Matrix and Core Classification Metrics
-Evaluated on a held-out test partition of 4,000 network flows from `Merged01.csv`.
+### 2.1 Confusion Matrix and Core Classification Metrics (Seed 1)
+Evaluated on the held-out test partition of 100,000 network flows from files `Merged54.csv` through `Merged63.csv`:
 
-- **True Positives (TP - Correctly Flagged Attacks):** 3,882
-- **True Negatives (TN - Correctly Verified Benign Flows):** 41
-- **False Negatives (FN - Attacks Missed):** 77
-- **False Positives (FP - Benign Flows Mistaken as Attack):** 0
-- **False Positive Rate (FPR):** $\frac{\text{FP}}{\text{FP} + \text{TN}} = \frac{0}{0 + 41} = \mathbf{0.00\%}$
+- **True Positives (TP - Correctly Flagged Attacks):** 97,218
+- **True Negatives (TN - Correctly Verified Benign Flows):** 1,436
+- **False Negatives (FN - Attacks Missed):** 148
+- **False Positives (FP - Benign Flows Mistaken as Attack):** 1,198
+- **Total Benign Samples ($N$):** 2,634
+- **False Positive Rate (FPR):** $\frac{\text{FP}}{\text{FP} + \text{TN}} = \frac{1,198}{2,634} = \mathbf{45.48\%}$ (95% Clopper-Pearson CI: `[0.4357, 0.4741]`)
+
+Across all 5 seeds, the mean False Positive Rate is **45.85% ± 0.32%**.
 
 ```
                   Predicted BENIGN    Predicted ATTACK
-Actual BENIGN            41                  0         (FPR = 0.00%)
-Actual ATTACK            77               3,882        (Recall = 98.05%)
+Actual BENIGN          1,436               1,198         (FPR = 45.48%, 95% CI [43.57%, 47.41%])
+Actual ATTACK            148              97,218         (Recall = 99.85%)
 ```
 
-### 2.2 Model Performance Comparison on Binary Task
-All models trained on 16,000 flows, evaluated on 4,000 flows using 15 LRRC-FS features:
-
-| Classifier Model | Accuracy | Macro F1 | Weighted F1 | Training Time (s) | Inference Latency (ms/sample) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Random Forest** (Depth 12, 50 Trees) | **98.08%** | **0.8497** | **0.9832** | 0.349s | 0.0024 ms |
-| **Decision Tree** (Depth 12, Single Tree) | 97.82% | 0.8339 | 0.9812 | **0.031s** | **0.0001 ms** |
-| **Extra Trees** (Depth 12, 50 Trees) | 97.92% | 0.8426 | 0.9821 | 0.220s | 0.0022 ms |
-| **HistGradientBoosting** (Max Depth 8) | **98.12%** | **0.8547** | **0.9837** | 0.485s | 0.0009 ms |
+> **Analysis of False Positives:** In natural test traffic, 97.4% of all flows are cyberattack floods. Because the training pool used balanced class quotas (to learn minority classes), the classifier exhibits a bias towards flagging anomalous high-speed traffic as malicious, yielding an elevated false positive rate on normal traffic.
 
 ---
 
 ## 3. Multiclass Threat Family Classification Evaluation
 
-### 3.1 Per-Class Performance Breakdown (Held-Out Test Split)
-In the 8-class classification task, the model must categorize traffic into:
-`Benign`, `DDoS`, `DoS`, `Mirai`, `Recon`, `Spoofing`, `Web`, and `BruteForce`.
+### 3.1 Per-Class Performance Breakdown (Held-Out Test Split, Plain Strategy)
+In the 8-class classification task, the model categorizes traffic into canonical families:
 
-| Threat Family | Precision | Recall | F1-Score | Test Support | Operational Assessment |
+| Threat Family | Precision | Recall | F1-Score (Mean, 5 Seeds) | Test Support | Operational Assessment |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **DDoS** | **0.85** | **0.70** | **0.77** | 3,595 | High detection on volumetric flooding attacks |
-| **DoS** | **0.34** | **0.45** | **0.39** | 872 | Moderate recall; overlapping feature rates with DDoS |
-| **Mirai Botnet** | **0.17** | **0.38** | **0.24** | 282 | GRE/UDP plain floods detected, some DoS confusion |
-| **Benign** | **0.63** | **0.53** | **0.57** | 118 | Good precision; low false alarm rate on normal traffic |
-| **Reconnaissance** | **0.51** | **0.35** | **0.42** | 77 | Port scan / host sweeps identified via SYN/ACK flags |
-| **Spoofing / MITM**| **0.37** | **0.57** | **0.45** | 53 | ARP spoofing & DNS poisoning detected via TTL/header |
-| **Web Exploit** | **0.00** | **0.00** | **0.00** | 2 | Severe minority class (<0.05% of dataset) |
-| **Brute Force** | **0.00** | **0.00** | **0.00** | 1 | Severe minority class (<0.02% of dataset) |
-| **Overall Macro Avg** | **0.36** | **0.37** | **0.35** | 5,000 | Arithmetic average penalizing rare classes |
-| **Weighted Avg** | **0.70** | **0.63** | **0.66** | 5,000 | Volume-weighted real-world performance |
+| **DoS** | **0.654** | **0.921** | **0.7647** | 18,061 | High detection; distinct volumetric traffic signature |
+| **Benign** | **0.621** | **0.715** | **0.6647** | 2,634 | Moderate precision on non-attack background traffic |
+| **BruteForce** | **0.702** | **0.540** | **0.6104** | 33 | Good precision on dictionary / authentication probes |
+| **Spoofing** | **0.281** | **0.490** | **0.3570** | 1,104 | ARP spoofing & DNS cache poisoning identified via packet headers |
+| **Reconnaissance** | **0.235** | **0.372** | **0.2880** | 1,686 | Port scanning identified via TCP flag patterns |
+| **Web Exploit** | **0.168** | **0.957** | **0.2857** | 63 | High recall but frequent false alarms on other classes |
+| **DDoS** | **0.912** | **0.034** | **0.0652** | 70,069 | Severe label confusion with DoS (flows shared identical rate patterns) |
+| **Mirai Botnet** | **0.142** | **0.022** | **0.0383** | 6,350 | Often classified as generic DoS/DDoS traffic |
 
----
+### 3.2 Imbalance Mitigation Strategy Comparison
 
-## 4. Feature Selection Comparative Benchmarks
-
-Evaluating LRRC-FS against the three required baseline selectors on identical held-out test data:
-
-| Feature Selector | Features Retained | Selection Time (s) | Training Duration (s) | Inference Latency (ms) | Test Accuracy | Macro F1 |
+| Strategy | Accuracy | Balanced Accuracy | Macro F1 | Weighted F1 | MCC | Latency (ms/flow) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **All Features (Baseline)** | 39 | **0.003s** | 0.473s | 0.0027 ms | **98.38%** | **0.8684** |
-| **Variance Threshold** | 26 | 0.011s | 0.480s | **0.0022 ms** | 98.35% | 0.8678 |
-| **SelectKBest (ANOVA F)** | 15 | 0.022s | 0.437s | 0.0028 ms | **98.42%** | **0.8704** |
-| **LRRC-FS (Proprietary)** | **15** | 0.034s | **0.383s** | 0.0026 ms | **98.08%** | **0.8497** |
-
-### Key Observations:
-1. **Model Training Speedup:** LRRC-FS achieved the lowest model training time (**0.383s**, 19.0% faster than All Features) by pruning collinear features that create tree splits with negligible information gain.
-2. **Feature Space Reduction:** Pruned **61.5% of input flow features** (from 39 to 15) while maintaining 98.08% test accuracy (a mere 0.3% delta from the full 39-feature model).
-3. **IoT Packet Extraction Cost:** LRRC-FS eliminated high-cost multi-packet variance and standard deviation calculations, preserving lightweight packet flag and counter features that can be parsed directly in hardware network interface card (NIC) buffers.
+| **Plain** | 58.24% ± 0.14% | 48.48% ± 0.15% | 0.3842 ± 0.0016 | 0.6378 ± 0.0017 | 0.3770 ± 0.0010 | 0.0014 ± 0.0001 ms |
+| **Balanced Weights** | 58.25% ± 0.21% | 48.52% ± 0.22% | 0.3848 ± 0.0024 | 0.6377 ± 0.0022 | 0.3771 ± 0.0016 | 0.0014 ± 0.0001 ms |
+| **Undersampling (RUS)** | **58.35% ± 0.11%** | 48.36% ± 0.50% | **0.3861 ± 0.0017** | **0.6391 ± 0.0013** | **0.3781 ± 0.0008** | 0.0014 ± 0.0001 ms |
+| **SMOTE** | 58.30% ± 0.13% | **48.79% ± 0.35%** | 0.3854 ± 0.0030 | 0.6386 ± 0.0014 | 0.3772 ± 0.0011 | 0.0015 ± 0.0003 ms |
 
 ---
 
-## 5. Critical Technical Analysis
+## 4. Feature Selection Ablation and Trade-Off Analysis
 
-### 5.1 Did High Overall Accuracy Mask Poor Minority Attack Detection?
-**YES.** This is a critical finding that must be transparently reported in academic and technical evaluations.
-- In both binary and multiclass tasks, the dataset is overwhelmingly dominated by DDoS floods (71.95%) and DoS attacks (17.15%).
-- A baseline classifier that achieves **78% accuracy** on the 8-class task is doing so almost entirely by correctly identifying DDoS and DoS packets.
-- In stark contrast, stealthy application-layer attacks—specifically `BruteForce` (dictionary attacks) and `Web` (SQL injection, XSS, command injection)—had an F1-score of **0.00** under standard training because their sample frequencies in a 20,000 flow slice are fewer than 10 rows (1,950:1 imbalance ratio).
-- **Remediation:** In DEVRAKSHAK, cost-sensitive class weighting (`class_weight='balanced'`) and policy rule POL-007 were introduced. This ensures that even when tabular rate features fail to separate single brute force attempts, high-confidence detection policy triggers remain armed in the SOC.
+Evaluated across random seeds on the held-out test split for $k=15$ features:
 
-### 5.2 Why Did the Model Fail on Specific Attack Types?
-1. **Sample Scarcity:** The official CICIoT2023 dataset captures millions of packets during flood experiments, but only executes web injections and dictionary attempts for a few seconds. Consequently, web injection packets constitute less than 0.05% of the total dataset.
-2. **Feature Representativeness:** Statistical packet flow metrics (`Header_Length`, `Rate`, `Time_To_Live`, `AVG`, `Tot sum`) are fundamentally designed to capture network volumetric dynamics. An HTTP SQL injection packet looks almost identical in rate, duration, and TCP flags to a normal HTTP GET/POST request. Tabular flow rates cannot easily detect SQL syntax inside packet payloads without Deep Packet Inspection (DPI).
+| Selector | Number of Features ($k$) | Macro F1 | Accuracy | Avg. Computation Cost |
+| :--- | :--- | :--- | :--- | :--- |
+| **All Features** | 39 | **0.8389** | **98.66%** | 0.479 |
+| **LRRC-FS (with stability)** | 15 | **0.8362** | **98.65%** | **0.327** |
+| **SelectKBest (ANOVA F)** | 15 | 0.8343 | 98.64% | 0.467 |
+| **Variance Threshold** | 15 | 0.7170 | 97.42% | 0.280 |
 
-### 5.3 Operational Cybersecurity Implications of FPR and FNR
-- **Zero False Alarm Rate (FPR = 0.00% on Binary Task):** In an enterprise SOC, false positives create alert fatigue that overwhelms security analysts. DEVRAKSHAK achieved a 0.00% false positive rate on the binary held-out test split, meaning benign IoT sensor communications are never falsely blocked.
-- **High-Volume Flood Mitigation (DDoS Recall = 70–98%):** Massive IoT botnet floods (Mirai, SYN floods, ICMP floods) are intercepted in sub-millisecond timeframes, protecting resource-constrained IoT gateways from denial-of-service starvation.
-
-### 5.4 IoT Network Throughput & Edge Latency Feasibility
-- **Measured Latency:** Decision Tree achieves **0.0001 ms/sample** (0.1 microseconds), while Random Forest achieves **0.0024 ms/sample** (2.4 microseconds).
-- **Throughput Capability:** At 2.4 $\mu$s per packet flow, a single CPU core can process **416,666 packets per second**.
-- **Edge Deployment:** Standard 100 Mbps IoT access points carry an average maximum of 80,000–120,000 packets per second under saturated conditions. Therefore, DEVRAKSHAK operates well above line rate for typical embedded IoT edge devices.
-
+**Conclusion:** LRRC-FS achieves within 0.0027 Macro F1 of the full 39-feature model while cutting average feature computation cost by 31.7% and prioritizing stable, low-overhead packet header fields.
