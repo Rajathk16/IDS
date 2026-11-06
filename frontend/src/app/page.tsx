@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import CyberGlobe3D from "./components/CyberGlobe3D";
+import AnimeGuardian from "./components/AnimeGuardian";
 import {
   Menu,
   Shield,
@@ -132,6 +134,13 @@ export default function DevrakshakDashboard() {
   const showToast = (msg: string, type: "success" | "error" | "info" = "info") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleSelectFlowPreset = (count: number, model: string, label: string) => {
+    setTrainSampleLimit(count);
+    setSampleLimit(count > 5000 ? 5000 : count);
+    setTrainModel(model);
+    showToast(`Flows configured to ${label}! Model set to ${model === "gradient_boosting" ? "HistGradientBoosting" : "Random Forest"}.`, "success");
   };
 
   useEffect(() => {
@@ -558,6 +567,13 @@ export default function DevrakshakDashboard() {
               ================================================================= */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
+              {/* Anime-Tech Cyber Sentinel & Smart Flow Recommendation Bar */}
+              <AnimeGuardian
+                activeModel={status?.active_model}
+                accuracy={83.7}
+                onSelectFlowPreset={handleSelectFlowPreset}
+              />
+
               {/* Row 1: 5 Top KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {/* 1. Total Alerts */}
@@ -870,60 +886,77 @@ export default function DevrakshakDashboard() {
                   </div>
                 </div>
 
-                {/* System Status Progress Bars (Exact Match to Visual) */}
-                <div className="nids-card p-5 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
-                    <h3 className="text-sm font-bold text-white">System Status</h3>
-                    <button
-                      onClick={() => setActiveTab("system")}
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-                    >
-                      View Details
-                    </button>
+                {/* Right Column: 3D Threat Radar + System Status Progress Bars */}
+                <div className="space-y-6">
+                  {/* Interactive 3D Cyber Threat Radar Globe */}
+                  <div className="nids-card p-4 space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-400" />
+                        3D Cyber Threat Radar
+                      </h3>
+                      <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-0.5 rounded">
+                        INTERACTIVE 3D
+                      </span>
+                    </div>
+                    <CyberGlobe3D />
                   </div>
 
-                  <div className="space-y-4 pt-1 text-xs">
-                    {/* CPU Usage */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-slate-300">
-                        <span>CPU Usage</span>
-                        <span className="font-mono text-slate-400">32%</span>
-                      </div>
-                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full" style={{ width: "32%" }}></div>
-                      </div>
+                  {/* System Status Progress Bars (Exact Match to Visual) */}
+                  <div className="nids-card p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#1f293d]">
+                      <h3 className="text-sm font-bold text-white">System Status</h3>
+                      <button
+                        onClick={() => setActiveTab("system")}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                      >
+                        View Details
+                      </button>
                     </div>
 
-                    {/* Memory Usage */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-slate-300">
-                        <span>Memory Usage</span>
-                        <span className="font-mono text-slate-400">65%</span>
+                    <div className="space-y-4 pt-1 text-xs">
+                      {/* CPU Usage */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-slate-300">
+                          <span>CPU Usage</span>
+                          <span className="font-mono text-slate-400">32%</span>
+                        </div>
+                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full rounded-full" style={{ width: "32%" }}></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                        <div className="bg-purple-500 h-full rounded-full" style={{ width: "65%" }}></div>
-                      </div>
-                    </div>
 
-                    {/* Disk Usage */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-slate-300">
-                        <span>Disk Usage</span>
-                        <span className="font-mono text-slate-400">78%</span>
+                      {/* Memory Usage */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Memory Usage</span>
+                          <span className="font-mono text-slate-400">65%</span>
+                        </div>
+                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                          <div className="bg-purple-500 h-full rounded-full" style={{ width: "65%" }}></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                        <div className="bg-orange-500 h-full rounded-full" style={{ width: "78%" }}></div>
-                      </div>
-                    </div>
 
-                    {/* Network I/O */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-slate-300">
-                        <span>Network I/O</span>
-                        <span className="font-mono text-slate-400">45%</span>
+                      {/* Disk Usage */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Disk Usage</span>
+                          <span className="font-mono text-slate-400">78%</span>
+                        </div>
+                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                          <div className="bg-orange-500 h-full rounded-full" style={{ width: "78%" }}></div>
+                        </div>
                       </div>
-                      <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
-                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: "45%" }}></div>
+
+                      {/* Network I/O */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Network I/O</span>
+                          <span className="font-mono text-slate-400">45%</span>
+                        </div>
+                        <div className="w-full bg-[#1e293b] h-2 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: "45%" }}></div>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -17,6 +17,20 @@ from src.data.taxonomy import map_to_binary, map_to_category
 logger = get_logger("preprocessor")
 
 
+# Physical network constraints for clean IoT flow processing
+NON_NEGATIVE_FEATURES = {
+    "Header_Length", "Duration", "Rate", "Tot sum", "Tot size", "Number",
+    "Min", "Max", "AVG", "Std", "Variance", "Time_To_Live",
+    "syn_count", "ack_count", "urg_count", "rst_count", "fin_count",
+    "psh_count", "ece_count", "cwr_count"
+}
+
+PROTOCOL_INDICATORS = {
+    "TCP", "UDP", "ICMP", "HTTP", "HTTPS", "DNS", "ARP", "LLC", "IPv",
+    "IGMP", "DHCP", "Telnet", "SMTP", "SSH", "IRC"
+}
+
+
 class PreprocessingManifest:
     """Serializable record of fitted preprocessing transformations and column mappings."""
 
@@ -96,13 +110,37 @@ class IoTDataPreprocessor(BaseEstimator, TransformerMixin):
 
     def clean_records(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Replace infinities and invalid numeric values with NaNs for safe imputation.
-        Does not drop rows silently; ensures consistent row shapes.
+        Deep cleaning & sanitization for raw IoT network flow records:
+          1. Strips leading/trailing whitespace from column names.
+          2. Replaces positive and negative infinities (+inf, -inf) with NaNs.
+          3. Sanitizes physical non-negative metrics (e.g. Header_Length, Duration, Rate < 0 -> NaN).
+          4. Binds discrete protocol indicators to clean binary [0.0, 1.0].
+          5. Clips extreme numerical overflows (> 1e12) caused by packet capture corruption.
         """
         df_clean = df.copy()
+        df_clean.columns = [c.strip() for c in df_clean.columns]
+
         numeric_cols = df_clean.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) > 0:
+            # 1. Replace infinities with NaN
             df_clean[numeric_cols] = df_clean[numeric_cols].replace([np.inf, -np.inf], np.nan)
+
+            # 2. Enforce non-negative flow constraints
+            for col in numeric_cols:
+                if col in NON_NEGATIVE_FEATURES:
+                    mask_neg = df_clean[col] < 0
+                    if mask_neg.any():
+                        df_clean.loc[mask_neg, col] = np.nan
+
+                # 3. Protocol flags sanity: enforce [0.0, 1.0]
+                elif col in PROTOCOL_INDICATORS:
+                    df_clean[col] = df_clean[col].clip(lower=0.0, upper=1.0)
+
+                # 4. Overflow protection (> 1e12 clipped or NaN)
+                mask_overflow = df_clean[col] > 1e12
+                if mask_overflow.any():
+                    df_clean.loc[mask_overflow, col] = np.nan
+
         return df_clean
 
     def extract_features_and_target(
@@ -208,7 +246,12 @@ class IoTDataPreprocessor(BaseEstimator, TransformerMixin):
         aligned_df = pd.DataFrame(index=X.index)
         for col in self.feature_names_:
             if col in X.columns:
-                aligned_df[col] = pd.to_numeric(X[col], errors="coerce").replace([np.inf, -np.inf], np.nan)
+                val = pd.to_numeric(X[col], errors="coerce").replace([np.inf, -np.inf], np.nan)
+                if col in NON_NEGATIVE_FEATURES:
+                    val = val.mask(val < 0, np.nan)
+                elif col in PROTOCOL_INDICATORS:
+                    val = val.clip(lower=0.0, upper=1.0)
+                aligned_df[col] = val
             else:
                 # If a feature was missing at inference, populate with fitted training median
                 aligned_df[col] = self.manifest_.imputer_medians.get(col, 0.0)

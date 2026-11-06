@@ -81,6 +81,7 @@ def inspect_schema(file_path: Path) -> Tuple[List[str], Optional[str]]:
     Returns (columns_list, detected_target_column).
     """
     sample = pd.read_csv(file_path, nrows=2)
+    sample.columns = [c.strip() for c in sample.columns]
     columns = list(sample.columns)
     target_col = None
     for candidate in POSSIBLE_LABEL_COLUMNS:
@@ -149,6 +150,7 @@ def load_dataset(
 
         # Read in chunks or slice
         def _optimize_chunk(c: pd.DataFrame) -> pd.DataFrame:
+            c.columns = [col.strip() for col in c.columns]
             float_cols = c.select_dtypes(include=["float64"]).columns
             if len(float_cols) > 0:
                 c[float_cols] = c[float_cols].astype("float32")

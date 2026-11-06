@@ -49,3 +49,53 @@ body {
   border-color: #2e3d57;
   transition: all 0.2s ease-in-out;
 }
+
+/* Anime Cyber Tech / 3D HUD Styles */
+@keyframes cyberPulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes scanline {
+  0% { top: 0%; opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes float3d {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.cyber-glow-cyan {
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.08);
+}
+
+.cyber-glow-magenta {
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.35), inset 0 0 15px rgba(236, 72, 153, 0.1);
+}
+
+.cyber-glow-indigo {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+}
+
+.anime-card-3d {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.anime-card-3d:hover {
+  transform: translateY(-3px);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+.cyber-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #06b6d4, #818cf8, transparent);
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+}
