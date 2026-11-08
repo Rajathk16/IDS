@@ -12,6 +12,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingMixIn
 import sys
+import threading
 import time
 import traceback
 from typing import Any, Dict, List, Optional
@@ -37,6 +38,64 @@ from src.training.train import TrainedModelBundle
 
 logger = get_logger("web_server")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+# In-memory registry for background asynchronous model training jobs
+TRAINING_JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+def _run_training_job_worker(
+    job_id: str,
+    engine: IDSEngine,
+    dataset_path: Optional[Path],
+    task_type: str,
+    model_name: str,
+    feature_selector: str,
+    n_features: int,
+    sample_limit: int,
+    resampling_strategy: Optional[str],
+    use_class_weight: bool
+) -> None:
+    """Worker function executed inside a background daemon thread for model training."""
+    if job_id not in TRAINING_JOBS:
+        return
+    TRAINING_JOBS[job_id]["status"] = "RUNNING"
+    TRAINING_JOBS[job_id]["progress"] = f"Training {model_name} ({task_type}) on dataset..."
+    start_time = time.perf_counter()
+
+    try:
+        bundle, run = engine.train(
+            data_path=dataset_path,
+            task_type=task_type,
+            model_name=model_name,
+            feature_selector=feature_selector,
+            n_features=n_features,
+            sample_limit=sample_limit,
+            resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
+            use_class_weight=use_class_weight
+        )
+        elapsed = round(time.perf_counter() - start_time, 2)
+        TRAINING_JOBS[job_id].update({
+            "status": "SUCCESS",
+            "progress": f"Completed successfully in {elapsed}s",
+            "duration_seconds": elapsed,
+            "run": run.model_dump(),
+            "model_path": bundle.model_path,
+            "features_selected": bundle.selected_features,
+            "labels": bundle.labels,
+            "accuracy": run.accuracy,
+            "macro_f1": run.macro_f1
+        })
+        logger.info(f"Background training job {job_id} completed successfully in {elapsed}s.")
+    except Exception as exc:
+        elapsed = round(time.perf_counter() - start_time, 2)
+        logger.error(f"Background training job {job_id} failed: {exc}", exc_info=True)
+        TRAINING_JOBS[job_id].update({
+            "status": "FAILED",
+            "progress": f"Failed after {elapsed}s: {exc}",
+            "error": str(exc),
+            "details": traceback.format_exc(),
+            "duration_seconds": elapsed
+        })
 
 
 def get_system_telemetry() -> Dict[str, Any]:
@@ -88,6 +147,31 @@ def get_system_telemetry() -> Dict[str, Any]:
         "mem_avail_gb": mem_avail_gb,
         "cpu_threads": os.cpu_count() or 4
     }
+
+
+def explain_flow(clean_feats: Dict[str, float], is_attack: bool, category: str) -> str:
+    """Provide human-interpretable feature attribution for detection decisions."""
+    if not is_attack:
+        return "Normal baseline (standard packet rate and protocol flags)"
+
+    rate = clean_feats.get("Rate", 0.0)
+    syn = clean_feats.get("syn_count", 0.0)
+    ack = clean_feats.get("ack_count", 0.0)
+    tot_sum = clean_feats.get("Tot sum", 0.0)
+    hdr_len = clean_feats.get("Header_Length", 0.0)
+
+    if rate > 500:
+        return f"Volumetric flow anomaly: Extreme packet rate ({rate:.1f} pkt/s)"
+    elif syn > 20:
+        return f"SYN Flood signature: Repeated unacknowledged SYN packets ({syn:.0f})"
+    elif ack > 50 and category in ("DDoS", "DoS"):
+        return f"ACK surge anomaly: High acknowledgment packet density ({ack:.0f})"
+    elif hdr_len > 1000:
+        return f"Header anomaly: Malformed or oversized packet headers ({hdr_len:.0f} B)"
+    elif tot_sum > 5000:
+        return f"Throughput burst: Byte volume deviation ({tot_sum:.0f} B)"
+    else:
+        return f"Statistical divergence in packet timing and flags ({category})"
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
@@ -401,6 +485,31 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 "settings": engine.settings.model_dump(mode="json")
             })
 
+        elif path == "/api/train/status":
+            job_id = query.get("job_id", [None])[0]
+            if not job_id:
+                self._send_error_json("Missing job_id query parameter", status=400)
+                return
+            job_info = TRAINING_JOBS.get(job_id)
+            if not job_info:
+                self._send_error_json(f"Training job not found: {job_id}", status=404)
+                return
+            self._send_json({
+                "success": True,
+                "job": job_info
+            })
+
+        elif path == "/api/jobs":
+            jobs_list = [
+                {k: v for k, v in j.items() if k != "run"}
+                for j in sorted(TRAINING_JOBS.values(), key=lambda x: x.get("created_at", 0), reverse=True)
+            ]
+            self._send_json({
+                "success": True,
+                "total_jobs": len(jobs_list),
+                "jobs": jobs_list
+            })
+
         else:
             self._send_error_json(f"Unknown GET endpoint: {path}", status=404)
 
@@ -441,6 +550,8 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 model_path_str = body.get("model_path")
                 sample_limit = int(body.get("sample_limit", 100000))
                 record_events = bool(body.get("record_events", True))
+                threshold_val = body.get("threshold")
+                decision_threshold = float(threshold_val) if threshold_val is not None else 0.70
 
                 if not file_path_str:
                     discovered = engine.discover_datasets()
@@ -505,11 +616,12 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         ground_truth_raw = df_sample[cand].astype(str).tolist()
                         break
 
-                # Execute predictions
+                # Execute predictions with calibrated threshold
                 df_result, events = predictor.predict_dataframe(
                     df_sample,
                     source_name=target_file.name,
-                    record_events=record_events
+                    record_events=record_events,
+                    decision_threshold=decision_threshold
                 )
                 elapsed_sec = round(time.perf_counter() - t_start, 4)
                 latency_ms = round((elapsed_sec / max(1, len(df_sample))) * 1000.0, 4)
@@ -523,6 +635,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 ground_truth_categories = {}
                 correct_count = 0
                 has_ground_truth = (ground_truth_raw is not None)
+                cm_data = None
 
                 if has_ground_truth:
                     if predictor.bundle.task_type == "binary":
@@ -536,6 +649,25 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     for gt in ground_truth_mapped:
                         ground_truth_categories[gt] = ground_truth_categories.get(gt, 0) + 1
                     accuracy = round((correct_count / max(1, total_tested)) * 100.0, 2)
+
+                    # Binary confusion matrix metrics (TP, TN, FP, FN, FPR)
+                    if predictor.bundle.task_type == "binary":
+                        tp = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "ATTACK" and is_atk])
+                        fn = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "ATTACK" and not is_atk])
+                        tn = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "BENIGN" and not is_atk])
+                        fp = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "BENIGN" and is_atk])
+                        fpr_val = round((fp / max(1, fp + tn)) * 100.0, 2) if (fp + tn) > 0 else 0.0
+                        fnr_val = round((fn / max(1, fn + tp)) * 100.0, 2) if (fn + tp) > 0 else 0.0
+                        cm_data = {
+                            "tp": tp,
+                            "tn": tn,
+                            "fp": fp,
+                            "fn": fn,
+                            "fpr_percentage": fpr_val,
+                            "fnr_percentage": fnr_val,
+                            "attack_support": tp + fn,
+                            "benign_support": tn + fp,
+                        }
                 else:
                     ground_truth_mapped = ["Unknown"] * total_tested
                     matches = [None] * total_tested
@@ -562,6 +694,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         for fc, v in sample_feats_table[idx].items()
                         if pd.notna(v) and np.isfinite(v)
                     }
+                    factor = explain_flow(clean_feats, event.is_attack, event.attack_category)
 
                     records.append({
                         "row_index": idx,
@@ -574,7 +707,8 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         "severity": event.severity,
                         "policy_triggered": event.policy_triggered,
                         "is_match": is_match,
-                        "key_features": clean_feats
+                        "key_features": clean_feats,
+                        "contributing_factor": factor,
                     })
 
                 response = {
@@ -585,12 +719,14 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         "model_used": predictor.bundle.model_name,
                         "model_task": predictor.bundle.task_type,
                         "model_labels": predictor.bundle.labels,
+                        "decision_threshold": decision_threshold,
                         "total_samples_tested": total_tested,
                         "records_displayed": display_limit,
                         "attacks_detected": attack_count,
                         "benign_detected": benign_count,
                         "has_ground_truth": has_ground_truth,
                         "accuracy_percentage": accuracy,
+                        "confusion_matrix": cm_data,
                         "correct_predictions": correct_count if has_ground_truth else None,
                         "misclassified": (total_tested - correct_count) if has_ground_truth else None,
                         "total_time_seconds": elapsed_sec,
@@ -615,6 +751,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 sample_limit = int(body.get("sample_limit", 15000))
                 resampling_strategy = body.get("resampling_strategy")
                 use_class_weight = bool(body.get("use_class_weight", False))
+                is_async = bool(body.get("async", True))
 
                 dataset_path = None
                 if dataset_path_str:
@@ -626,26 +763,68 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
 
                 logger.info(
                     f"Web UI requested model training: {model_name} ({task_type}) on "
-                    f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}"
+                    f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}, async={is_async}"
                 )
 
-                bundle, run = engine.train(
-                    data_path=dataset_path,
-                    task_type=task_type,
-                    model_name=model_name,
-                    feature_selector=feature_selector,
-                    n_features=n_features,
-                    sample_limit=sample_limit,
-                    resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
-                    use_class_weight=use_class_weight
+                if not is_async:
+                    # Synchronous execution
+                    bundle, run = engine.train(
+                        data_path=dataset_path,
+                        task_type=task_type,
+                        model_name=model_name,
+                        feature_selector=feature_selector,
+                        n_features=n_features,
+                        sample_limit=sample_limit,
+                        resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
+                        use_class_weight=use_class_weight
+                    )
+
+                    self._send_json({
+                        "success": True,
+                        "run": run.model_dump(),
+                        "model_path": bundle.model_path,
+                        "features_selected": bundle.selected_features,
+                        "labels": bundle.labels
+                    })
+                    return
+
+                # Asynchronous execution in background daemon thread
+                job_id = f"job_train_{int(time.time() * 1000)}"
+                TRAINING_JOBS[job_id] = {
+                    "job_id": job_id,
+                    "status": "QUEUED",
+                    "progress": "Training job queued in background...",
+                    "created_at": time.time(),
+                    "task_type": task_type,
+                    "model_name": model_name,
+                    "feature_selector": feature_selector,
+                    "n_features": n_features,
+                    "sample_limit": sample_limit
+                }
+
+                thread = threading.Thread(
+                    target=_run_training_job_worker,
+                    args=(
+                        job_id,
+                        engine,
+                        dataset_path,
+                        task_type,
+                        model_name,
+                        feature_selector,
+                        n_features,
+                        sample_limit,
+                        resampling_strategy,
+                        use_class_weight
+                    ),
+                    daemon=True
                 )
+                thread.start()
 
                 self._send_json({
                     "success": True,
-                    "run": run.model_dump(),
-                    "model_path": bundle.model_path,
-                    "features_selected": bundle.selected_features,
-                    "labels": bundle.labels
+                    "job_id": job_id,
+                    "status": "QUEUED",
+                    "message": "Model training launched in background thread. Poll /api/train/status for progress."
                 })
             except Exception as exc:
                 logger.error(f"Error in /api/train: {exc}", exc_info=True)

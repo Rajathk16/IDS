@@ -20,9 +20,9 @@ if not exist "%~dp0frontend\node_modules" (
 :: 2. Start Python Backend in background
 echo [1/3] Starting Python AI & REST API Backend on http://127.0.0.1:8000 ...
 if exist "%~dp0.venv\Scripts\python.exe" (
-    start "DEVRAKSHAK Python AI Engine" cmd /k ""%~dp0.venv\Scripts\python.exe" "%~dp0src\web_server.py" --host 127.0.0.1 --port 8000"
+    start "DEVRAKSHAK Python AI Engine" cmd /k ""%~dp0.venv\Scripts\python.exe" -m src.web.server --host 127.0.0.1 --port 8000"
 ) else (
-    start "DEVRAKSHAK Python AI Engine" cmd /k "uv run python "%~dp0src\web_server.py" --host 127.0.0.1 --port 8000"
+    start "DEVRAKSHAK Python AI Engine" cmd /k "uv run python -m src.web.server --host 127.0.0.1 --port 8000"
 )
 
 :: 3. Launch default browser to Next.js frontend after 4 seconds

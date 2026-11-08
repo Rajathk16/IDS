@@ -22,6 +22,7 @@ from src.core.settings import get_settings
 from src.data.loader import is_synthetic_file, load_dataset
 from src.data.preprocess import IoTDataPreprocessor
 from src.data.split import split_dataset
+from src.data.taxonomy import map_to_binary, map_to_category
 from src.detection.event_store import EventStore
 from src.training.evaluate import (
     evaluate_predictions,
@@ -257,6 +258,14 @@ def train_model(
             actual_target = cand
             break
 
+    # Map target column to canonical task labels (binary or 8 categories) before split
+    # to guarantee clean stratified distribution and avoid 1-sample sub-attack splits
+    if actual_target in df_raw.columns:
+        if task_type == "binary":
+            df_raw[actual_target] = df_raw[actual_target].astype(str).apply(map_to_binary)
+        else:
+            df_raw[actual_target] = df_raw[actual_target].astype(str).apply(map_to_category)
+
     # 2. Split dataset with leakage resistance safeguards
     df_train, df_test, _ = split_dataset(
         df_raw,
@@ -362,6 +371,18 @@ def train_model(
         metadata=metadata
     )
     bundle.save(model_file)
+
+    # Prune stale model bundles to keep storage clean (keep newest 10)
+    try:
+        saved_models = sorted(list(settings.model_dir.glob("*.joblib")), key=lambda p: p.stat().st_mtime, reverse=True)
+        if len(saved_models) > 10:
+            for old_f in saved_models[10:]:
+                try:
+                    old_f.unlink()
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
     # 10. Record Training Run in EventStore
     training_run = TrainingRun(

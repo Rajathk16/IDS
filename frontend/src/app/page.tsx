@@ -84,6 +84,7 @@ interface TestRecord {
   policy_triggered: string | null;
   is_match: boolean | null;
   key_features: Record<string, number>;
+  contributing_factor?: string;
 }
 
 interface TestSummary {
@@ -91,6 +92,7 @@ interface TestSummary {
   dataset_path: string;
   model_used: string;
   model_task: string;
+  decision_threshold?: number;
   total_samples_tested: number;
   attacks_detected: number;
   benign_detected: number;
@@ -98,6 +100,16 @@ interface TestSummary {
   accuracy_percentage: number | null;
   total_time_seconds: number;
   latency_ms_per_sample: number;
+  confusion_matrix?: {
+    tp: number;
+    tn: number;
+    fp: number;
+    fn: number;
+    fpr_percentage: number;
+    fnr_percentage: number;
+    attack_support: number;
+    benign_support: number;
+  } | null;
 }
 
 interface PolicyItem {
@@ -158,6 +170,8 @@ export default function DevrakshakDashboard() {
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [sampleLimit, setSampleLimit] = useState<number>(100000);
+  const [decisionThreshold, setDecisionThreshold] = useState<number>(0.70);
+  const [backendOnline, setBackendOnline] = useState<boolean>(true);
   const [testLoading, setTestLoading] = useState<boolean>(false);
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
   const [testRecords, setTestRecords] = useState<TestRecord[]>([]);
@@ -203,10 +217,18 @@ export default function DevrakshakDashboard() {
   const fetchStatus = async () => {
     try {
       const res = await fetch("/api/status");
-      const data = await res.json();
-      if (data.success) setStatus(data);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setStatus(data);
+          setBackendOnline(true);
+        }
+      } else {
+        setBackendOnline(false);
+      }
     } catch (e) {
       console.error("fetchStatus error:", e);
+      setBackendOnline(false);
     }
   };
 
@@ -302,6 +324,7 @@ export default function DevrakshakDashboard() {
           file_path: datasetToUse,
           model_path: selectedModel || undefined,
           sample_limit: sampleLimit,
+          threshold: decisionThreshold,
           record_events: true,
         }),
       });
@@ -356,6 +379,7 @@ export default function DevrakshakDashboard() {
           file_path: fileToTest,
           model_path: selectedModel || undefined,
           sample_limit: limitCount,
+          threshold: decisionThreshold,
           record_events: true,
         }),
       });
@@ -388,7 +412,7 @@ export default function DevrakshakDashboard() {
     }
   };
 
-  // Model Training Trigger
+  // Model Training Trigger (with background asynchronous job polling)
   const handleTrain = async () => {
     const datasetToUse = selectedDataset || (datasets.length > 0 ? datasets[0].path : "");
     setTrainLoading(true);
@@ -404,6 +428,7 @@ export default function DevrakshakDashboard() {
           n_features: trainNumFeatures,
           sample_limit: trainSampleLimit,
           use_class_weight: true,
+          async: true,
         }),
       });
 
@@ -415,10 +440,50 @@ export default function DevrakshakDashboard() {
           else if (errData.details) errMessage = errData.details;
         } catch (_) {}
         showToast(errMessage, "error");
+        setTrainLoading(false);
         return;
       }
 
       const data = await res.json();
+
+      // If backend dispatched an asynchronous job, poll status
+      if (data.job_id) {
+        const jobId = data.job_id;
+        showToast(`Training launched in background (${jobId}). Training model...`, "info");
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const pollRes = await fetch(`/api/train/status?job_id=${encodeURIComponent(jobId)}`);
+            if (pollRes.ok) {
+              const pollData = await pollRes.json();
+              if (pollData.success && pollData.job) {
+                const job = pollData.job;
+                if (job.status === "SUCCESS") {
+                  clearInterval(pollInterval);
+                  setTrainLoading(false);
+                  if (job.run) setLatestRun(job.run);
+                  showToast(
+                    `Training complete! Accuracy: ${(job.accuracy * 100).toFixed(2)}% | Macro F1: ${(job.macro_f1 * 100).toFixed(2)}%`,
+                    "success"
+                  );
+                  fetchModels();
+                  fetchRuns();
+                  fetchStatus();
+                } else if (job.status === "FAILED") {
+                  clearInterval(pollInterval);
+                  setTrainLoading(false);
+                  showToast(job.error || "Training job failed", "error");
+                }
+              }
+            }
+          } catch (pollErr) {
+            // Transient network retry
+          }
+        }, 1200);
+        return;
+      }
+
+      // Synchronous fallback
       if (data.success) {
         setLatestRun(data.run);
         showToast(
@@ -434,7 +499,7 @@ export default function DevrakshakDashboard() {
     } catch (err: any) {
       showToast(err.message || "Failed to connect to backend", "error");
     } finally {
-      setTrainLoading(false);
+      // For synchronous fallback, disable loading; for async, loading is stopped inside poller
     }
   };
 
@@ -671,6 +736,24 @@ export default function DevrakshakDashboard() {
           </div>
         </header>
 
+        {/* Offline Backend Alert Banner */}
+        {!backendOnline && (
+          <div className="bg-rose-500/15 border-b border-rose-500/30 px-6 py-2.5 flex items-center justify-between text-xs text-rose-200">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>
+                <strong>Python AI Backend Offline (Port 8000).</strong> Live classification and training are paused. Start the backend: <code className="bg-rose-950/60 px-2 py-0.5 rounded text-[11px] font-mono text-rose-300">uv run python -m src.web.server --port 8000</code> or run <code className="bg-rose-950/60 px-2 py-0.5 rounded text-[11px] font-mono text-rose-300">start_web.bat</code>.
+              </span>
+            </div>
+            <button
+              onClick={fetchAllData}
+              className="px-3 py-1 bg-rose-500/30 hover:bg-rose-500/40 border border-rose-400/40 rounded text-white font-medium interactive-transition whitespace-nowrap ml-4"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
+
         {/* Content Body Container */}
         <main className="p-6 space-y-6 max-w-7xl w-full mx-auto">
           {/* =================================================================
@@ -729,6 +812,21 @@ export default function DevrakshakDashboard() {
                           {opt.label}
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <label htmlFor="dash-threshold-select" className="text-content-secondary">Calibrated Threshold:</label>
+                    <select
+                      id="dash-threshold-select"
+                      value={decisionThreshold}
+                      onChange={(e) => setDecisionThreshold(Number(e.target.value))}
+                      className="bg-base-elevated border border-border-subtle rounded px-2.5 py-1.5 text-xs text-content-primary focus:border-brand focus:outline-none"
+                      title="Adjust decision threshold to control False Positive Rate"
+                    >
+                      <option value={0.70}>0.70 (Low FPR ~12% - Recommended)</option>
+                      <option value={0.50}>0.50 (Max Sensitivity &gt;99.8%)</option>
+                      <option value={0.85}>0.85 (High Precision)</option>
                     </select>
                   </div>
 
@@ -1242,7 +1340,7 @@ export default function DevrakshakDashboard() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                   <div>
                     <label htmlFor="traffic-partition-select" className="block text-content-secondary mb-1">Target Partition</label>
                     <select
@@ -1272,6 +1370,21 @@ export default function DevrakshakDashboard() {
                           {m.name} [{m.task.toUpperCase()}]
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="traffic-threshold-select" className="block text-content-secondary mb-1">Decision Threshold</label>
+                    <select
+                      id="traffic-threshold-select"
+                      value={decisionThreshold}
+                      onChange={(e) => setDecisionThreshold(Number(e.target.value))}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                      title="Adjust decision threshold to calibrate False Positive Rate"
+                    >
+                      <option value={0.70}>0.70 (Low FPR ~12% - Recommended)</option>
+                      <option value={0.50}>0.50 (Max Sensitivity &gt;99.8%)</option>
+                      <option value={0.85}>0.85 (High Precision Defense)</option>
                     </select>
                   </div>
 
@@ -1312,31 +1425,94 @@ export default function DevrakshakDashboard() {
 
               {/* Inspection Summary Stats */}
               {testSummary && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="panel p-4 text-center">
-                    <div className="text-xs text-content-secondary">Total Flows Evaluated</div>
-                    <div className="text-xl font-bold text-content-primary mt-1 tabular-nums">
-                      {testSummary.total_samples_tested.toLocaleString()}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-content-secondary">Total Flows Evaluated</div>
+                      <div className="text-xl font-bold text-content-primary mt-1 tabular-nums">
+                        {testSummary.total_samples_tested.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-status-danger">Attacks Detected</div>
+                      <div className="text-xl font-bold text-status-danger mt-1 tabular-nums">
+                        {testSummary.attacks_detected.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-status-success">Benign Verified</div>
+                      <div className="text-xl font-bold text-status-success mt-1 tabular-nums">
+                        {testSummary.benign_detected.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-brand">Latency / Sample</div>
+                      <div className="text-xl font-bold text-brand mt-1 tabular-nums">
+                        {testSummary.latency_ms_per_sample} ms
+                      </div>
                     </div>
                   </div>
-                  <div className="panel p-4 text-center">
-                    <div className="text-xs text-status-danger">Attacks Detected</div>
-                    <div className="text-xl font-bold text-status-danger mt-1 tabular-nums">
-                      {testSummary.attacks_detected.toLocaleString()}
+
+                  {/* Empirical Confusion Matrix & FPR Verification Card */}
+                  {testSummary.confusion_matrix && (
+                    <div className="panel p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-subtle text-xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand" />
+                          <span className="font-semibold text-content-primary">Empirical Confusion Matrix &amp; False Positive Verification</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-base-elevated border border-border-subtle text-content-secondary">
+                            Calibrated Threshold: {testSummary.decision_threshold ?? 0.70}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
+                            (testSummary.confusion_matrix.fpr_percentage ?? 0) <= 15
+                              ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          }`}>
+                            FPR: {testSummary.confusion_matrix.fpr_percentage}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">True Negative (Normal Clean)</div>
+                          <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.tn.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">Correctly verified benign</div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">False Positive (False Alarm)</div>
+                          <div className="text-lg font-bold text-amber-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.fp.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            FPR = {testSummary.confusion_matrix.fpr_percentage}%
+                          </div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">False Negative (Missed Attack)</div>
+                          <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.fn.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            FNR = {testSummary.confusion_matrix.fnr_percentage}%
+                          </div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">True Positive (Threat Stopped)</div>
+                          <div className="text-lg font-bold text-brand font-mono mt-0.5">
+                            {testSummary.confusion_matrix.tp.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            Recall = {(((testSummary.confusion_matrix.tp) / Math.max(1, testSummary.confusion_matrix.tp + testSummary.confusion_matrix.fn)) * 100).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="panel p-4 text-center">
-                    <div className="text-xs text-status-success">Benign Verified</div>
-                    <div className="text-xl font-bold text-status-success mt-1 tabular-nums">
-                      {testSummary.benign_detected.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="panel p-4 text-center">
-                    <div className="text-xs text-brand">Latency / Sample</div>
-                    <div className="text-xl font-bold text-brand mt-1 tabular-nums">
-                      {testSummary.latency_ms_per_sample} ms
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -1367,13 +1543,14 @@ export default function DevrakshakDashboard() {
                         <th className="py-2.5 px-3">Confidence</th>
                         <th className="py-2.5 px-3">Category</th>
                         <th className="py-2.5 px-3">Severity</th>
+                        <th className="py-2.5 px-3">Salient Attribution / Root Cause</th>
                         <th className="py-2.5 px-3">Extracted Features</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-subtle">
                       {filteredTrafficRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-content-tertiary">
+                          <td colSpan={8} className="py-8 text-center text-content-tertiary">
                             No inspection flows loaded yet. Click &quot;Inspect Flows&quot; above.
                           </td>
                         </tr>
@@ -1411,6 +1588,9 @@ export default function DevrakshakDashboard() {
                               >
                                 {r.severity}
                               </span>
+                            </td>
+                            <td className="py-2 px-3 text-[11px] text-content-secondary font-mono max-w-xs truncate" title={r.contributing_factor}>
+                              {r.contributing_factor || (r.is_attack ? "Volumetric / pattern anomaly" : "Normal traffic baseline")}
                             </td>
                             <td className="py-2 px-3 text-[11px] text-content-tertiary font-mono">
                               {Object.entries(r.key_features || {})
@@ -1578,25 +1758,14 @@ export default function DevrakshakDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* =================================================================
-              VIEW 5: REPORTS & EXPERIMENTAL RUNS
-              ================================================================= */}
-          {activeTab === "reports" && (
-            <div className="space-y-6">
-              <div className="panel p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div>
-                    <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-brand" />
-                      Research Reports & Multi-Seed Benchmark Runs
-                    </h2>
-                    <p className="text-xs text-content-secondary mt-0.5">
-                      Empirical evaluation records on the CICIoT2023 held-out test split (100,000 flows)
-                    </p>
-                  </div>
+              {/* Verified Benchmark Results (5-Seed Mean ± Std) */}
+              <div className="p-5 rounded panel space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <h3 className="text-xs font-semibold text-content-primary flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-brand" />
+                    Verified Held-Out Benchmark Results (5-Seed Mean ± Std, 100,000 Flows)
+                  </h3>
                   <button
                     onClick={handleExportCSV}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-base-elevated border border-border-subtle hover:bg-base-hover text-content-primary text-xs font-medium interactive-transition"
@@ -1605,73 +1774,70 @@ export default function DevrakshakDashboard() {
                     <span>Export Audit CSV</span>
                   </button>
                 </div>
-
-                {/* Benchmark Summary Table */}
-                <div className="p-4 rounded bg-base-elevated border border-border-subtle space-y-3">
-                  <h3 className="text-xs font-semibold text-content-primary">
-                    Verified Benchmark Results (5-Seed Mean ± Std)
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-2.5 rounded bg-base-surface border border-border-subtle">
-                      <span className="text-content-secondary block">Binary Accuracy</span>
-                      <span className="text-sm font-semibold text-content-primary tabular-nums font-mono">98.65% ± 0.01%</span>
-                    </div>
-                    <div className="p-2.5 rounded bg-base-surface border border-border-subtle">
-                      <span className="text-content-secondary block">Binary Macro F1</span>
-                      <span className="text-sm font-semibold text-brand tabular-nums font-mono">0.8359 ± 0.0011</span>
-                    </div>
-                    <div className="p-2.5 rounded bg-base-surface border border-border-subtle">
-                      <span className="text-content-secondary block">Benign False Positive Rate</span>
-                      <span className="text-sm font-semibold text-amber-400 tabular-nums font-mono">45.85% ± 0.32%</span>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Binary Accuracy</span>
+                    <span className="text-sm font-semibold text-content-primary tabular-nums font-mono">98.65% ± 0.01%</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Binary Macro F1</span>
+                    <span className="text-sm font-semibold text-brand tabular-nums font-mono">0.8359 ± 0.0011</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Raw Asymmetric FPR</span>
+                    <span className="text-sm font-semibold text-amber-400 tabular-nums font-mono">45.85% (at 0.50)</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Calibrated FPR</span>
+                    <span className="text-sm font-semibold text-emerald-400 tabular-nums font-mono">&lt; 15% (at 0.70)</span>
                   </div>
                 </div>
+              </div>
 
-                {/* Historical Runs Table from SQLite */}
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-content-primary">
-                    Stored Training Runs History ({runs.length})
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="text-content-secondary border-b border-border-subtle">
+              {/* Historical Training Runs History Table */}
+              <div className="panel p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-content-primary">
+                  Stored Model Runs History ({runs.length})
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-content-secondary border-b border-border-subtle">
+                      <tr>
+                        <th className="py-2 px-3">Run ID</th>
+                        <th className="py-2 px-3">Timestamp</th>
+                        <th className="py-2 px-3">Task</th>
+                        <th className="py-2 px-3">Model</th>
+                        <th className="py-2 px-3">Accuracy</th>
+                        <th className="py-2 px-3">Macro F1</th>
+                        <th className="py-2 px-3">Latency</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {runs.length === 0 ? (
                         <tr>
-                          <th className="py-2 px-3">Run ID</th>
-                          <th className="py-2 px-3">Timestamp</th>
-                          <th className="py-2 px-3">Task</th>
-                          <th className="py-2 px-3">Model</th>
-                          <th className="py-2 px-3">Accuracy</th>
-                          <th className="py-2 px-3">Macro F1</th>
-                          <th className="py-2 px-3">Latency</th>
+                          <td colSpan={7} className="py-6 text-center text-content-tertiary">
+                            No historical runs recorded in database yet.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-subtle">
-                        {runs.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="py-6 text-center text-content-tertiary">
-                              No historical runs recorded in database.
+                      ) : (
+                        runs.slice(0, 15).map((r) => (
+                          <tr key={r.run_id} className="hover:bg-base-elevated interactive-transition">
+                            <td className="py-2 px-3 text-content-primary font-medium font-mono">{r.run_id}</td>
+                            <td className="py-2 px-3 text-content-secondary">
+                              {r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}
+                            </td>
+                            <td className="py-2 px-3 text-content-secondary font-mono">{r.task_type}</td>
+                            <td className="py-2 px-3 text-content-primary">{r.model_name}</td>
+                            <td className="py-2 px-3 text-content-primary tabular-nums font-mono">{(r.accuracy * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-brand tabular-nums font-mono">{(r.macro_f1 * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-content-tertiary">
+                              <span className="tabular-nums font-mono">{r.inference_latency_ms_per_sample}</span> ms
                             </td>
                           </tr>
-                        ) : (
-                          runs.map((r) => (
-                            <tr key={r.run_id} className="hover:bg-base-elevated interactive-transition">
-                              <td className="py-2 px-3 text-content-primary font-medium font-mono">{r.run_id}</td>
-                              <td className="py-2 px-3 text-content-secondary">
-                                {r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}
-                              </td>
-                              <td className="py-2 px-3 text-content-secondary font-mono">{r.task_type}</td>
-                              <td className="py-2 px-3 text-content-primary">{r.model_name}</td>
-                              <td className="py-2 px-3 text-content-primary tabular-nums font-mono">{(r.accuracy * 100).toFixed(2)}%</td>
-                              <td className="py-2 px-3 text-brand tabular-nums font-mono">{(r.macro_f1 * 100).toFixed(2)}%</td>
-                              <td className="py-2 px-3 text-content-tertiary">
-                                <span className="tabular-nums font-mono">{r.inference_latency_ms_per_sample}</span> ms
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

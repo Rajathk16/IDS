@@ -132,38 +132,59 @@ def load_dataset(
     dfs: List[pd.DataFrame] = []
     total_loaded = 0
 
-    for file_path in files:
-        if sample_limit is not None and total_loaded >= sample_limit:
-            break
-
-        cols, tgt = inspect_schema(file_path)
-        if chosen_target not in cols:
-            logger.warning(
-                f"Skipping {file_path.name}: schema does not contain expected target column '{chosen_target}'."
-            )
-            continue
-
-        remaining = None if sample_limit is None else (sample_limit - total_loaded)
-        if remaining is not None and remaining <= 0:
-            break
-
-        # Read in chunks or slice
-        if remaining is not None and remaining <= chunk_size:
-            chunk = pd.read_csv(file_path, nrows=remaining)
+    # If multiple CSV partitions exist and a sample limit is requested,
+    # sample rows across up to 25 partitions to ensure all attack classes are captured
+    if len(files) > 1 and sample_limit is not None:
+        target_files = files[:min(len(files), 25)]
+        rows_per_file = max(20, sample_limit // len(target_files))
+        for idx, file_path in enumerate(target_files):
+            if total_loaded >= sample_limit:
+                break
+            cols, tgt = inspect_schema(file_path)
+            if chosen_target not in cols:
+                logger.warning(f"Skipping {file_path.name}: missing target '{chosen_target}'")
+                continue
+            to_read = min(rows_per_file, sample_limit - total_loaded)
+            if idx == len(target_files) - 1:
+                to_read = sample_limit - total_loaded
+            if to_read <= 0:
+                break
+            chunk = pd.read_csv(file_path, nrows=to_read)
             dfs.append(chunk)
             total_loaded += len(chunk)
-        else:
-            # Chunked iteration to respect memory limits
-            reader = pd.read_csv(file_path, chunksize=chunk_size)
-            for chunk in reader:
-                if remaining is not None:
-                    to_take = min(len(chunk), remaining - total_loaded)
-                    if to_take < len(chunk):
-                        chunk = chunk.iloc[:to_take]
+    else:
+        for file_path in files:
+            if sample_limit is not None and total_loaded >= sample_limit:
+                break
+
+            cols, tgt = inspect_schema(file_path)
+            if chosen_target not in cols:
+                logger.warning(
+                    f"Skipping {file_path.name}: schema does not contain expected target column '{chosen_target}'."
+                )
+                continue
+
+            remaining = None if sample_limit is None else (sample_limit - total_loaded)
+            if remaining is not None and remaining <= 0:
+                break
+
+            # Read in chunks or slice
+            if remaining is not None and remaining <= chunk_size:
+                chunk = pd.read_csv(file_path, nrows=remaining)
                 dfs.append(chunk)
                 total_loaded += len(chunk)
-                if remaining is not None and total_loaded >= remaining:
-                    break
+            else:
+                # Chunked iteration to respect memory limits
+                reader = pd.read_csv(file_path, chunksize=chunk_size)
+                for chunk in reader:
+                    if remaining is not None:
+                        to_take = min(len(chunk), remaining - total_loaded)
+                        if to_take < len(chunk):
+                            chunk = chunk.iloc[:to_take]
+                    dfs.append(chunk)
+                    total_loaded += len(chunk)
+                    if remaining is not None and total_loaded >= remaining:
+                        break
 
     if not dfs:
         raise ValueError(f"Failed to load any valid data from {target_path}")

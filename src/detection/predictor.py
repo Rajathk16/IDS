@@ -39,7 +39,8 @@ class OfflinePredictor:
         self,
         df: pd.DataFrame,
         source_name: str = "offline_input.csv",
-        record_events: bool = True
+        record_events: bool = True,
+        decision_threshold: Optional[float] = None
     ) -> Tuple[pd.DataFrame, List[DetectionEvent]]:
         """
         Run offline detection on an input DataFrame.
@@ -53,15 +54,27 @@ class OfflinePredictor:
         X_df, _ = preprocessor.extract_features_and_target(df)
 
         # Generate predictions and probabilities
-        preds = self.bundle.predict(X_df)
         probs = self.bundle.predict_proba(X_df)
+
+        # Threshold calibration for binary classification (mitigates high False Positive Rate)
+        if self.bundle.task_type == "binary" and decision_threshold is not None and probs.shape[1] == 2:
+            attack_col_indices = [i for i, lbl in enumerate(self.bundle.labels) if "attack" in str(lbl).lower()]
+            atk_idx = attack_col_indices[0] if attack_col_indices else 0
+            benign_idx = 1 - atk_idx
+            atk_probs = probs[:, atk_idx]
+
+            is_attacks = [bool(p >= decision_threshold) for p in atk_probs]
+            pred_labels = [str(self.bundle.labels[atk_idx]) if atk else str(self.bundle.labels[benign_idx]) for atk in is_attacks]
+            preds = np.array(pred_labels)
+            confidences = np.array([float(p if atk else (1.0 - p)) for atk, p in zip(is_attacks, atk_probs)])
+        else:
+            preds = self.bundle.predict(X_df)
+            confidences = np.max(probs, axis=1)
+            pred_labels = [str(p) for p in preds]
+            is_attacks = [lbl.lower() not in ("benign", "benigntraffic", "normal") for lbl in pred_labels]
 
         elapsed = time.perf_counter() - t0
         latency_ms = (elapsed / max(1, len(df))) * 1000.0
-
-        confidences = np.max(probs, axis=1)
-        pred_labels = [str(p) for p in preds]
-        is_attacks = [lbl.lower() not in ("benign", "benigntraffic", "normal") for lbl in pred_labels]
 
         # Fast category mapping
         if self.bundle.task_type == "binary":
@@ -122,7 +135,8 @@ class OfflinePredictor:
         self,
         csv_path: Path,
         sample_limit: Optional[int] = None,
-        record_events: bool = True
+        record_events: bool = True,
+        decision_threshold: Optional[float] = None
     ) -> Tuple[pd.DataFrame, List[DetectionEvent]]:
         """Run offline inference directly on a CSV file."""
         csv_path = Path(csv_path)
@@ -130,4 +144,9 @@ class OfflinePredictor:
             raise FileNotFoundError(f"Input file not found: {csv_path}")
 
         df = pd.read_csv(csv_path, nrows=sample_limit)
-        return self.predict_dataframe(df, source_name=csv_path.name, record_events=record_events)
+        return self.predict_dataframe(
+            df,
+            source_name=csv_path.name,
+            record_events=record_events,
+            decision_threshold=decision_threshold
+        )
