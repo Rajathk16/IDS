@@ -59,59 +59,61 @@ class OfflinePredictor:
         elapsed = time.perf_counter() - t0
         latency_ms = (elapsed / max(1, len(df))) * 1000.0
 
-        events: List[DetectionEvent] = []
         confidences = np.max(probs, axis=1)
+        pred_labels = [str(p) for p in preds]
+        is_attacks = [lbl.lower() not in ("benign", "benigntraffic", "normal") for lbl in pred_labels]
 
-        for i in range(len(df)):
-            pred_label = str(preds[i])
-            conf = float(confidences[i])
-            is_atk = pred_label.lower() not in ("benign", "benigntraffic", "normal")
-            
-            # Map to category for policy matching
-            if self.bundle.task_type == "binary":
-                cat = "Benign" if not is_atk else "Attack"
-            else:
-                cat = map_to_category(pred_label)
+        # Fast category mapping
+        if self.bundle.task_type == "binary":
+            categories = ["Benign" if not atk else "Attack" for atk in is_attacks]
+        else:
+            categories = [map_to_category(lbl) for lbl in pred_labels]
 
-            # Evaluate policy
-            severity, triggered_policy = self.policies.evaluate(cat, conf)
+        # Policy evaluation
+        severities = []
+        policies_triggered = []
+        for cat, conf in zip(categories, confidences):
+            sev, pol = self.policies.evaluate(cat, float(conf))
+            severities.append(sev)
+            policies_triggered.append(pol)
 
-            # Sample key numeric features for audit record
-            sample_feats = {}
-            for k in ["flow_duration", "Rate", "Tot sum", "syn_count", "ack_count"]:
-                if k in df.columns:
-                    val = df.iloc[i][k]
-                    if pd.notna(val) and np.isfinite(val):
-                        sample_feats[k] = float(val)
+        # Vectorized feature dictionary sampling for top rows only
+        feat_cols = [k for k in ["flow_duration", "Rate", "Tot sum", "syn_count", "ack_count"] if k in df.columns]
+        sample_size = min(len(df), 1000)
+        sample_records = df[feat_cols].iloc[:sample_size].to_dict(orient="records") if feat_cols else [{} for _ in range(sample_size)]
 
-            event = DetectionEvent(
+        events: List[DetectionEvent] = []
+        for i in range(sample_size):
+            clean_feats = {k: float(v) for k, v in sample_records[i].items() if pd.notna(v) and np.isfinite(v)}
+            events.append(DetectionEvent(
                 source_file=source_name,
                 row_index=i,
-                predicted_label=pred_label,
-                confidence=round(conf, 4),
-                is_attack=is_atk,
-                attack_category=cat,
-                severity=severity,
-                policy_triggered=triggered_policy,
-                raw_features=sample_feats if sample_feats else None
-            )
-            events.append(event)
+                predicted_label=pred_labels[i],
+                confidence=round(float(confidences[i]), 4),
+                is_attack=is_attacks[i],
+                attack_category=categories[i],
+                severity=severities[i],
+                policy_triggered=policies_triggered[i],
+                raw_features=clean_feats if clean_feats else None
+            ))
 
         # Annotate input DataFrame with prediction columns
         df_result = df.copy()
         df_result["predicted_label"] = preds
         df_result["prediction_confidence"] = np.round(confidences, 4)
-        df_result["is_attack"] = [e.is_attack for e in events]
-        df_result["attack_category"] = [e.attack_category for e in events]
-        df_result["alert_severity"] = [e.severity for e in events]
-        df_result["policy_triggered"] = [e.policy_triggered for e in events]
+        df_result["is_attack"] = is_attacks
+        df_result["attack_category"] = categories
+        df_result["alert_severity"] = severities
+        df_result["policy_triggered"] = policies_triggered
 
-        if record_events:
-            self.event_store.save_detection_events(events)
+        if record_events and events:
+            # Persist high-signal sample events to SQLite
+            self.event_store.save_detection_events(events[:500])
 
+        total_attacks = sum(is_attacks)
         logger.info(
             f"Inference complete: processed {len(df):,} records in {elapsed:.3f}s "
-            f"({latency_ms:.4f} ms/sample). Attacks detected: {sum(e.is_attack for e in events):,}."
+            f"({latency_ms:.4f} ms/sample). Attacks detected: {total_attacks:,}."
         )
 
         return df_result, events

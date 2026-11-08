@@ -17,17 +17,56 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Suppress browser extension collisions
-              if (typeof window !== "undefined") {
+              // Suppress noisy third-party browser extension collisions and stream errors
+              (function() {
+                if (typeof window === "undefined") return;
+
+                // 1. Suppress unhandled promise rejections from extensions (MetaMask, inpage.js)
                 window.addEventListener("unhandledrejection", function(event) {
                   var reason = event && event.reason;
                   var msg = (reason && reason.message) || String(reason || "");
-                  if (msg.indexOf("MetaMask") !== -1 || msg.indexOf("inpage.js") !== -1) {
+                  if (
+                    msg.indexOf("MetaMask") !== -1 ||
+                    msg.indexOf("inpage.js") !== -1 ||
+                    msg.indexOf("Receiving end does not exist") !== -1
+                  ) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                   }
                 }, true);
-              }
+
+                // 2. Intercept and silence extension-injected console spam
+                var originalWarn = console.warn;
+                var originalError = console.error;
+                var noisyPatterns = [
+                  "MaxListenersExceededWarning",
+                  "Resetting the streams",
+                  "contentscript.js",
+                  "Receiving end does not exist",
+                  "MetaMask",
+                  "inpage.js"
+                ];
+
+                function shouldFilter(args) {
+                  for (var i = 0; i < args.length; i++) {
+                    var str = typeof args[i] === "object" ? JSON.stringify(args[i]) : String(args[i]);
+                    for (var j = 0; j < noisyPatterns.length; j++) {
+                      if (str && str.indexOf(noisyPatterns[j]) !== -1) return true;
+                    }
+                  }
+                  return false;
+                }
+
+                console.warn = function() {
+                  if (shouldFilter(arguments)) return;
+                  originalWarn.apply(console, arguments);
+                };
+
+                console.error = function() {
+                  if (shouldFilter(arguments)) return;
+                  originalError.apply(console, arguments);
+                };
+              })();
             `,
           }}
         />

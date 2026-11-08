@@ -125,13 +125,17 @@ interface TrainingRunItem {
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "alerts", label: "Alerts", icon: AlertOctagon },
-  { id: "traffic", label: "Traffic Monitor", icon: Activity },
-  { id: "analysis", label: "Analysis & Lab", icon: BarChart3 },
-  { id: "reports", label: "Reports & Runs", icon: FileText },
-  { id: "rules", label: "Defense Rules", icon: Sliders },
-  { id: "system", label: "System & Logs", icon: Server },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "traffic", label: "Flow Inspection", icon: Activity },
+  { id: "analysis", label: "ML Lab & Models", icon: BarChart3 },
+  { id: "alerts", label: "Alerts & Defense", icon: AlertOctagon },
+];
+
+const FLOW_OPTIONS = [
+  { value: 50000, label: "50,000 Flows (50K)" },
+  { value: 100000, label: "1,00,000 Flows (1 Lakh - Standard)" },
+  { value: 200000, label: "2,00,000 Flows (2 Lakhs)" },
+  { value: 500000, label: "5,00,000 Flows (5 Lakhs)" },
+  { value: 1000000, label: "10,00,000 Flows (10 Lakhs - Stress Test)" },
 ];
 
 export default function DevrakshakDashboard() {
@@ -150,10 +154,10 @@ export default function DevrakshakDashboard() {
   const [logs, setLogs] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  // Traffic Monitor states
+  // Traffic / Flow Inspection states
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
-  const [sampleLimit, setSampleLimit] = useState<number>(200);
+  const [sampleLimit, setSampleLimit] = useState<number>(100000);
   const [testLoading, setTestLoading] = useState<boolean>(false);
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
   const [testRecords, setTestRecords] = useState<TestRecord[]>([]);
@@ -284,7 +288,8 @@ export default function DevrakshakDashboard() {
 
   // Run Traffic Flow Inspection
   const handleRunInference = async () => {
-    if (!selectedDataset) {
+    const datasetToUse = selectedDataset || (datasets.length > 0 ? datasets[0].path : "");
+    if (!datasetToUse) {
       showToast("Please select a dataset partition first.", "error");
       return;
     }
@@ -294,18 +299,31 @@ export default function DevrakshakDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          file_path: selectedDataset,
+          file_path: datasetToUse,
           model_path: selectedModel || undefined,
           sample_limit: sampleLimit,
           record_events: true,
         }),
       });
+
+      if (!res.ok) {
+        let errMessage = `Backend server (http://127.0.0.1:8000) returned error ${res.status}. Please ensure Python engine is running: 'uv run python -m src.web.server --port 8000'.`;
+        try {
+          const errData = await res.json();
+          if (errData.error) errMessage = errData.error;
+          else if (errData.details) errMessage = errData.details;
+        } catch (_) {}
+        showToast(errMessage, "error");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setTestSummary(data.summary);
         setTestRecords(data.records);
+        const totalTested = data.summary.total_samples_tested?.toLocaleString() || data.records.length;
         showToast(
-          `Classified ${data.records.length} flows in ${data.summary.total_time_seconds}s (${data.summary.latency_ms_per_sample} ms/flow)`,
+          `Classified ${totalTested} flows in ${data.summary.total_time_seconds}s (${data.summary.latency_ms_per_sample} ms/flow)`,
           "success"
         );
         fetchStats();
@@ -314,14 +332,14 @@ export default function DevrakshakDashboard() {
         showToast(data.error || "Inference failed", "error");
       }
     } catch (err: any) {
-      showToast(err.message, "error");
+      showToast(err.message || "Failed to connect to backend", "error");
     } finally {
       setTestLoading(false);
     }
   };
 
   // Quick Offline Evaluation Trigger
-  const handleQuickOfflineRun = async (targetFile?: string, limitCount: number = 200) => {
+  const handleQuickOfflineRun = async (targetFile?: string, limitCount: number = 100000) => {
     const fileToTest = targetFile || selectedDataset || (datasets.length > 0 ? datasets[0].path : "");
     if (!fileToTest) {
       showToast("No offline dataset partition available.", "error");
@@ -329,7 +347,7 @@ export default function DevrakshakDashboard() {
     }
     const fileName = fileToTest.split(/[/\\]/).pop();
     setTestLoading(true);
-    showToast(`Evaluating ${limitCount} flows from ${fileName}…`, "info");
+    showToast(`Evaluating ${limitCount.toLocaleString()} flows from ${fileName}…`, "info");
     try {
       const res = await fetch("/api/test", {
         method: "POST",
@@ -341,17 +359,30 @@ export default function DevrakshakDashboard() {
           record_events: true,
         }),
       });
+
+      if (!res.ok) {
+        let errMessage = `Backend server (http://127.0.0.1:8000) returned error ${res.status}. Please ensure Python engine is running: 'uv run python -m src.web.server --port 8000'.`;
+        try {
+          const errData = await res.json();
+          if (errData.error) errMessage = errData.error;
+          else if (errData.details) errMessage = errData.details;
+        } catch (_) {}
+        showToast(errMessage, "error");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setTestSummary(data.summary);
         setTestRecords(data.records);
-        showToast(`Inspected ${data.records.length} flows. Database updated!`, "success");
+        const totalTested = data.summary.total_samples_tested?.toLocaleString() || data.records.length;
+        showToast(`Inspected ${totalTested} flows. Database updated!`, "success");
         await Promise.all([fetchStats(), fetchStatus()]);
       } else {
         showToast(data.error || "Execution failed", "error");
       }
     } catch (err: any) {
-      showToast(err.message, "error");
+      showToast(err.message || "Failed to connect to backend", "error");
     } finally {
       setTestLoading(false);
     }
@@ -359,13 +390,14 @@ export default function DevrakshakDashboard() {
 
   // Model Training Trigger
   const handleTrain = async () => {
+    const datasetToUse = selectedDataset || (datasets.length > 0 ? datasets[0].path : "");
     setTrainLoading(true);
     try {
       const res = await fetch("/api/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dataset_path: selectedDataset,
+          dataset_path: datasetToUse || undefined,
           model_name: trainModel,
           task_type: trainTask,
           feature_selector: trainSelector,
@@ -374,6 +406,18 @@ export default function DevrakshakDashboard() {
           use_class_weight: true,
         }),
       });
+
+      if (!res.ok) {
+        let errMessage = `Backend server (http://127.0.0.1:8000) returned error ${res.status}. Please ensure Python engine is running: 'uv run python -m src.web.server --port 8000'.`;
+        try {
+          const errData = await res.json();
+          if (errData.error) errMessage = errData.error;
+          else if (errData.details) errMessage = errData.details;
+        } catch (_) {}
+        showToast(errMessage, "error");
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setLatestRun(data.run);
@@ -388,7 +432,7 @@ export default function DevrakshakDashboard() {
         showToast(data.error || "Training failed", "error");
       }
     } catch (err: any) {
-      showToast(err.message, "error");
+      showToast(err.message || "Failed to connect to backend", "error");
     } finally {
       setTrainLoading(false);
     }
@@ -680,11 +724,11 @@ export default function DevrakshakDashboard() {
                       onChange={(e) => setSampleLimit(Number(e.target.value))}
                       className="bg-base-elevated border border-border-subtle rounded px-2.5 py-1.5 text-xs text-content-primary focus:border-brand focus:outline-none"
                     >
-                      <option value={100}>100</option>
-                      <option value={200}>200</option>
-                      <option value={500}>500</option>
-                      <option value={1000}>1,000</option>
-                      <option value={5000}>5,000</option>
+                      {FLOW_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1109,6 +1153,65 @@ export default function DevrakshakDashboard() {
                     })
                   )}
                 </div>
+
+                {/* Integrated Automated Defense Mitigation Policies */}
+                <div className="pt-6 border-t border-border-subtle space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-semibold text-content-primary flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-brand" />
+                        Automated Defense Mitigation Policies (POL-001 – POL-007)
+                      </h3>
+                      <p className="text-xs text-content-secondary mt-0.5">
+                        Response actions mapping machine learning threat predictions to network gateway interventions
+                      </p>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-medium">
+                      {policies.length} Policies Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {policies.map((p) => {
+                      const sev = (p.severity || "HIGH").toUpperCase();
+                      return (
+                        <div
+                          key={p.policy_id}
+                          className="p-3.5 rounded bg-base-elevated border border-border-subtle flex flex-col justify-between gap-2 text-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-content-primary">
+                                {p.policy_id}: {p.name}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold font-mono ${
+                                  sev === "CRITICAL"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    : sev === "HIGH"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                }`}
+                              >
+                                {sev}
+                              </span>
+                            </div>
+                            <p className="text-xs text-content-secondary">{p.description}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-border-subtle/50 text-[11px]">
+                            <span className="text-content-tertiary">
+                              Action: <span className="text-content-primary font-medium">{p.action}</span>
+                            </span>
+                            <span className="text-emerald-400 font-semibold font-mono">
+                              &ge; {(p.min_confidence * 100).toFixed(0)}% Conf
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1173,17 +1276,18 @@ export default function DevrakshakDashboard() {
                   </div>
 
                   <div>
-                    <label htmlFor="traffic-flow-limit-select" className="block text-content-secondary mb-1">Flow Limit</label>
+                    <label htmlFor="traffic-flow-limit-select" className="block text-content-secondary mb-1">Flow Inspection Volume</label>
                     <select
                       id="traffic-flow-limit-select"
                       value={sampleLimit}
                       onChange={(e) => setSampleLimit(Number(e.target.value))}
                       className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
                     >
-                      <option value={100}>100 Flows</option>
-                      <option value={200}>200 Flows (Recommended)</option>
-                      <option value={500}>500 Flows</option>
-                      <option value={1000}>1,000 Flows</option>
+                      {FLOW_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1210,26 +1314,26 @@ export default function DevrakshakDashboard() {
               {testSummary && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="panel p-4 text-center">
-                    <div className="text-xs text-content-secondary">Flows Tested</div>
-                    <div className="text-xl font-semibold text-content-primary mt-1 tabular-nums">
-                      {testSummary.total_samples_tested}
+                    <div className="text-xs text-content-secondary">Total Flows Evaluated</div>
+                    <div className="text-xl font-bold text-content-primary mt-1 tabular-nums">
+                      {testSummary.total_samples_tested.toLocaleString()}
                     </div>
                   </div>
                   <div className="panel p-4 text-center">
                     <div className="text-xs text-status-danger">Attacks Detected</div>
-                    <div className="text-xl font-semibold text-status-danger mt-1 tabular-nums">
-                      {testSummary.attacks_detected}
+                    <div className="text-xl font-bold text-status-danger mt-1 tabular-nums">
+                      {testSummary.attacks_detected.toLocaleString()}
                     </div>
                   </div>
                   <div className="panel p-4 text-center">
                     <div className="text-xs text-status-success">Benign Verified</div>
-                    <div className="text-xl font-semibold text-status-success mt-1 tabular-nums">
-                      {testSummary.benign_detected}
+                    <div className="text-xl font-bold text-status-success mt-1 tabular-nums">
+                      {testSummary.benign_detected.toLocaleString()}
                     </div>
                   </div>
                   <div className="panel p-4 text-center">
-                    <div className="text-xs text-brand">Latency per Flow</div>
-                    <div className="text-xl font-semibold text-brand mt-1 tabular-nums">
+                    <div className="text-xs text-brand">Latency / Sample</div>
+                    <div className="text-xl font-bold text-brand mt-1 tabular-nums">
                       {testSummary.latency_ms_per_sample} ms
                     </div>
                   </div>
@@ -1243,7 +1347,13 @@ export default function DevrakshakDashboard() {
                     Classified Flow Records
                   </h3>
                   <span className="text-xs text-content-secondary">
-                    Showing <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span> records
+                    {testSummary ? (
+                      <>
+                        Evaluated <span className="font-semibold text-content-primary tabular-nums font-mono">{testSummary.total_samples_tested.toLocaleString()}</span> flows · Showing first <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span>
+                      </>
+                    ) : (
+                      <>Showing <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span> records</>
+                    )}
                   </span>
                 </div>
 
@@ -1561,189 +1671,6 @@ export default function DevrakshakDashboard() {
                         )}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================================================================
-              VIEW 6: DEFENSE RULES & POLICIES
-              ================================================================= */}
-          {activeTab === "rules" && (
-            <div className="space-y-6">
-              <div className="panel p-5 space-y-4">
-                <div className="pb-3 border-b border-border-subtle">
-                  <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-brand" />
-                    Automated Defense Policies (POL-001 through POL-007)
-                  </h2>
-                  <p className="text-xs text-content-secondary mt-0.5">
-                    Response actions mapping machine learning threat predictions to network gateway interventions
-                  </p>
-                </div>
-
-                <div className="p-3 rounded bg-base-elevated border border-border-subtle text-xs text-content-secondary flex items-start gap-2.5">
-                  <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
-                  <span>
-                    Architecture Note: Defense policies execute downstream on model predictions. If the model fails to detect an attack class, the rule cannot fire.
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {policies.map((p) => {
-                    const sev = (p.severity || "HIGH").toUpperCase();
-                    return (
-                      <div
-                        key={p.policy_id}
-                        className="p-4 rounded bg-base-elevated border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 interactive-transition hover:border-border-strong"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs text-content-primary">
-                              {p.policy_id}: {p.name}
-                            </span>
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-semibold font-mono ${
-                                sev === "CRITICAL"
-                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                  : sev === "HIGH"
-                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                  : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                              }`}
-                            >
-                              {sev}
-                            </span>
-                          </div>
-                          <p className="text-xs text-content-secondary">{p.description}</p>
-                          <div className="text-[11px] text-content-tertiary">
-                            Action: <span className="text-content-primary font-medium">{p.action}</span>
-                          </div>
-                        </div>
-
-                        <div className="sm:text-right shrink-0">
-                          <span className="text-xs text-emerald-400 font-semibold block">
-                            Active · Threshold <span className="tabular-nums font-mono">{(p.min_confidence * 100).toFixed(0)}%</span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================================================================
-              VIEW 7: SYSTEM INFRASTRUCTURE & LOGS
-              ================================================================= */}
-          {activeTab === "system" && (
-            <div className="space-y-6">
-              <div className="panel p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div>
-                    <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
-                      <Server className="w-4 h-4 text-brand" />
-                      CICIoT2023 Datasets & Server Logs
-                    </h2>
-                    <p className="text-xs text-content-secondary mt-0.5">
-                      Discovered offline dataset partitions and live system telemetry
-                    </p>
-                  </div>
-                  <span className="text-xs text-content-primary">
-                    <span className="tabular-nums font-mono">{datasets.length}</span> Files Ready
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <span className="text-content-secondary block">Dataset Location</span>
-                    <code className="text-content-primary mt-1 block font-mono text-xs">data/raw/Merged*.csv</code>
-                  </div>
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <span className="text-content-secondary block">Database Store</span>
-                    <span className="text-content-primary mt-1 block">iot_ids.sqlite ({status?.db_size_mb || 16} MB)</span>
-                  </div>
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <span className="text-content-secondary block">Python Engine</span>
-                    <span className="font-mono text-content-primary mt-1 block">{status?.python_version || "Python 3.14.0"}</span>
-                  </div>
-                </div>
-
-                {/* Live System Logs Viewer */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-content-primary flex items-center gap-2">
-                      <Terminal className="w-3.5 h-3.5 text-brand" />
-                      Live Engine Event Stream
-                    </span>
-                    <button
-                      onClick={fetchLogs}
-                      className="text-brand hover:underline font-medium text-[11px]"
-                    >
-                      Refresh Logs
-                    </button>
-                  </div>
-                  <div className="bg-base-bg p-4 rounded border border-border-subtle text-[11px] max-h-72 overflow-y-auto space-y-1 text-content-secondary">
-                    {logs.length === 0 ? (
-                      <div className="text-content-tertiary">No log events recorded.</div>
-                    ) : (
-                      logs.map((l, i) => <div key={i} className="font-mono">{l}</div>)
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =================================================================
-              VIEW 8: SETTINGS & RUNTIME
-              ================================================================= */}
-          {activeTab === "settings" && (
-            <div className="space-y-6">
-              <div className="panel p-5 space-y-4 text-xs">
-                <div className="pb-3 border-b border-border-subtle">
-                  <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-brand" />
-                    System Settings & Configuration
-                  </h2>
-                  <p className="text-xs text-content-secondary mt-0.5">
-                    Runtime environment parameters and database store configuration
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-content-secondary">
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <div className="text-content-tertiary">Operating Platform</div>
-                    <div className="text-content-primary font-mono mt-1">{status?.platform || "Windows x86_64"}</div>
-                  </div>
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <div className="text-content-tertiary">Database Store</div>
-                    <div className="text-content-primary mt-1">iot_ids.sqlite ({status?.db_size_mb || 16} MB)</div>
-                  </div>
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <div className="text-content-tertiary">Primary Backend Server</div>
-                    <div className="text-content-primary font-mono mt-1">http://127.0.0.1:8000</div>
-                  </div>
-                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
-                    <div className="text-content-tertiary">Frontend Port</div>
-                    <div className="text-content-primary font-mono mt-1">http://localhost:3000</div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded bg-base-elevated border border-border-subtle text-content-secondary">
-                  <div className="font-semibold text-content-primary text-xs mb-1">
-                    API Endpoints Verified
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-content-tertiary">
-                    <code>/api/status</code>
-                    <code>/api/datasets</code>
-                    <code>/api/models</code>
-                    <code>/api/test</code>
-                    <code>/api/train</code>
-                    <code>/api/policies</code>
-                    <code>/api/runs</code>
-                    <code>/api/logs</code>
                   </div>
                 </div>
               </div>

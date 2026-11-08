@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import mimetypes
 import os
@@ -434,188 +435,221 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             })
 
         elif path == "/api/test":
-            # Test inference on a specific CSV file
-            file_path_str = body.get("file_path")
-            model_path_str = body.get("model_path")
-            sample_limit = int(body.get("sample_limit", 100))
-            record_events = bool(body.get("record_events", True))
+            try:
+                # Test inference on a specific CSV file
+                file_path_str = body.get("file_path")
+                model_path_str = body.get("model_path")
+                sample_limit = int(body.get("sample_limit", 100000))
+                record_events = bool(body.get("record_events", True))
 
-            if not file_path_str:
-                discovered = engine.discover_datasets()
-                if discovered["raw"]:
-                    target_file = discovered["raw"][0]
-                elif discovered["synthetic"]:
-                    target_file = discovered["synthetic"][0]
-                else:
-                    self._send_error_json("No dataset file specified or found.", status=400)
-                    return
-            else:
-                target_file = Path(file_path_str)
-
-            if not target_file.exists():
-                self._send_error_json(f"Dataset file does not exist: {target_file}", status=404)
-                return
-
-            model_path = Path(model_path_str) if model_path_str else None
-
-            # Load predictor
-            t_start = time.perf_counter()
-            if model_path:
-                predictor = OfflinePredictor(model_path)
-            elif engine.active_model_bundle:
-                predictor = OfflinePredictor(engine.active_model_bundle)
-            else:
-                saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), reverse=True)
-                if saved_models:
-                    predictor = OfflinePredictor(saved_models[0])
-                else:
-                    self._send_error_json("No trained model bundle available. Please run training first.", status=400)
-                    return
-
-            # Read sample rows
-            df_sample = pd.read_csv(target_file, nrows=sample_limit)
-            
-            # Check for ground truth column
-            ground_truth_raw = None
-            for cand in ["label", "Label", "LABEL", "class", "Class", "attack_type"]:
-                if cand in df_sample.columns:
-                    ground_truth_raw = df_sample[cand].astype(str).tolist()
-                    break
-
-            # Execute predictions
-            df_result, events = predictor.predict_dataframe(
-                df_sample,
-                source_name=target_file.name,
-                record_events=record_events
-            )
-            elapsed_sec = round(time.perf_counter() - t_start, 4)
-            latency_ms = round((elapsed_sec / max(1, len(df_sample))) * 1000.0, 4)
-
-            # Analyze accuracy and metrics if ground truth was present
-            records = []
-            correct_count = 0
-            attack_count = 0
-            benign_count = 0
-            ground_truth_categories = {}
-            predicted_categories = {}
-
-            for idx, event in enumerate(events):
-                raw_gt = ground_truth_raw[idx] if ground_truth_raw else None
-                
-                # Determine ground truth mapped category
-                if raw_gt is not None:
-                    if predictor.bundle.task_type == "binary":
-                        mapped_gt = map_to_binary(raw_gt)
-                        # Check match
-                        is_match = (mapped_gt.upper() == event.predicted_label.upper())
+                if not file_path_str:
+                    discovered = engine.discover_datasets()
+                    if discovered["raw"]:
+                        target_file = discovered["raw"][0]
+                    elif discovered["synthetic"]:
+                        target_file = discovered["synthetic"][0]
                     else:
-                        mapped_gt = map_to_category(raw_gt)
-                        is_match = (mapped_gt.lower() == event.predicted_label.lower())
-                    if is_match:
-                        correct_count += 1
+                        self._send_error_json("No dataset file specified or found.", status=400)
+                        return
                 else:
-                    mapped_gt = "Unknown"
-                    is_match = None
+                    target_file = Path(file_path_str)
+                    if not target_file.is_absolute() and not target_file.exists():
+                        target_file = (PROJECT_ROOT / target_file).resolve()
 
-                if event.is_attack:
-                    attack_count += 1
+                if not target_file.exists():
+                    discovered = engine.discover_datasets()
+                    if discovered["raw"]:
+                        target_file = discovered["raw"][0]
+                    elif discovered["synthetic"]:
+                        target_file = discovered["synthetic"][0]
+                    else:
+                        self._send_error_json(f"Dataset file does not exist: {file_path_str}", status=404)
+                        return
+
+                model_path = Path(model_path_str) if model_path_str else None
+                if model_path and not model_path.is_absolute() and not model_path.exists():
+                    model_path = (PROJECT_ROOT / model_path).resolve()
+
+                # Load predictor safely with fallback
+                t_start = time.perf_counter()
+                predictor = None
+                if model_path and model_path.exists():
+                    try:
+                        predictor = OfflinePredictor(model_path)
+                    except Exception as err:
+                        logger.warning(f"Could not load requested model {model_path}: {err}")
+
+                if predictor is None:
+                    if engine.active_model_bundle and Path(engine.active_model_bundle).exists():
+                        predictor = OfflinePredictor(engine.active_model_bundle)
+                    else:
+                        saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), reverse=True)
+                        if saved_models:
+                            predictor = OfflinePredictor(saved_models[0])
+                        else:
+                            self._send_error_json("No trained model bundle available. Please run training first.", status=400)
+                            return
+
+                # Read sample rows
+                df_sample = pd.read_csv(target_file, nrows=sample_limit, low_memory=False)
+                if len(df_sample) == 0:
+                    self._send_error_json(f"Dataset file {target_file.name} is empty.", status=400)
+                    return
+
+                df_sample.columns = [str(c).strip() for c in df_sample.columns]
+
+                # Check for ground truth column
+                ground_truth_raw = None
+                for cand in ["label", "Label", "LABEL", "class", "Class", "attack_type"]:
+                    if cand in df_sample.columns:
+                        ground_truth_raw = df_sample[cand].astype(str).tolist()
+                        break
+
+                # Execute predictions
+                df_result, events = predictor.predict_dataframe(
+                    df_sample,
+                    source_name=target_file.name,
+                    record_events=record_events
+                )
+                elapsed_sec = round(time.perf_counter() - t_start, 4)
+                latency_ms = round((elapsed_sec / max(1, len(df_sample))) * 1000.0, 4)
+
+                # Analyze accuracy and metrics across the ENTIRE sample set (e.g. 1 Lakh, 2 Lakh flows)
+                total_tested = len(df_sample)
+                attack_count = int(df_result["is_attack"].sum())
+                benign_count = int(total_tested - attack_count)
+                predicted_categories = {str(k): int(v) for k, v in df_result["attack_category"].value_counts().items()}
+
+                ground_truth_categories = {}
+                correct_count = 0
+                has_ground_truth = (ground_truth_raw is not None)
+
+                if has_ground_truth:
+                    if predictor.bundle.task_type == "binary":
+                        ground_truth_mapped = [map_to_binary(str(x)) for x in ground_truth_raw]
+                        matches = [gt.upper() == str(pred).upper() for gt, pred in zip(ground_truth_mapped, df_result["predicted_label"])]
+                    else:
+                        ground_truth_mapped = [map_to_category(str(x)) for x in ground_truth_raw]
+                        matches = [gt.lower() == str(pred).lower() for gt, pred in zip(ground_truth_mapped, df_result["predicted_label"])]
+
+                    correct_count = int(sum(matches))
+                    for gt in ground_truth_mapped:
+                        ground_truth_categories[gt] = ground_truth_categories.get(gt, 0) + 1
+                    accuracy = round((correct_count / max(1, total_tested)) * 100.0, 2)
                 else:
-                    benign_count += 1
+                    ground_truth_mapped = ["Unknown"] * total_tested
+                    matches = [None] * total_tested
+                    accuracy = None
 
-                # Tally category breakdowns
-                pred_cat = event.attack_category or event.predicted_label
-                predicted_categories[pred_cat] = predicted_categories.get(pred_cat, 0) + 1
-                if raw_gt:
-                    ground_truth_categories[mapped_gt] = ground_truth_categories.get(mapped_gt, 0) + 1
-
-                # Extract key packet feature values for display
-                key_feats = {}
+                # Prepare top records for UI table display (first 200 rows)
+                display_limit = min(200, total_tested, len(events))
                 feature_candidates = [
                     "Header_Length", "Protocol Type", "Time_To_Live", "Rate",
                     "Tot sum", "syn_count", "ack_count", "AVG", "Variance", "IAT"
                 ]
-                for fc in feature_candidates:
-                    if fc in df_sample.columns:
-                        v = df_sample.iloc[idx][fc]
-                        if pd.notna(v) and np.isfinite(v):
-                            key_feats[fc] = round(float(v), 2)
+                feat_subset = [fc for fc in feature_candidates if fc in df_sample.columns]
+                sample_feats_table = df_sample[feat_subset].iloc[:display_limit].to_dict(orient="records") if feat_subset else [{} for _ in range(display_limit)]
 
-                records.append({
-                    "row_index": idx,
-                    "ground_truth_raw": raw_gt,
-                    "ground_truth_mapped": mapped_gt,
-                    "predicted_label": event.predicted_label,
-                    "confidence": event.confidence,
-                    "is_attack": event.is_attack,
-                    "attack_category": event.attack_category,
-                    "severity": event.severity,
-                    "policy_triggered": event.policy_triggered,
-                    "is_match": is_match,
-                    "key_features": key_feats
-                })
+                records = []
+                for idx in range(display_limit):
+                    event = events[idx]
+                    raw_gt = ground_truth_raw[idx] if ground_truth_raw else None
+                    mapped_gt = ground_truth_mapped[idx]
+                    is_match = matches[idx]
 
-            has_ground_truth = (ground_truth_raw is not None)
-            accuracy = round((correct_count / len(records)) * 100.0, 2) if (has_ground_truth and records) else None
+                    clean_feats = {
+                        fc: round(float(v), 2)
+                        for fc, v in sample_feats_table[idx].items()
+                        if pd.notna(v) and np.isfinite(v)
+                    }
 
-            response = {
-                "success": True,
-                "summary": {
-                    "dataset_file": target_file.name,
-                    "dataset_path": str(target_file),
-                    "model_used": predictor.bundle.model_name,
-                    "model_task": predictor.bundle.task_type,
-                    "model_labels": predictor.bundle.labels,
-                    "total_samples_tested": len(records),
-                    "attacks_detected": attack_count,
-                    "benign_detected": benign_count,
-                    "has_ground_truth": has_ground_truth,
-                    "accuracy_percentage": accuracy,
-                    "correct_predictions": correct_count if has_ground_truth else None,
-                    "misclassified": (len(records) - correct_count) if has_ground_truth else None,
-                    "total_time_seconds": elapsed_sec,
-                    "latency_ms_per_sample": latency_ms,
-                    "predicted_distribution": predicted_categories,
-                    "ground_truth_distribution": ground_truth_categories if has_ground_truth else None
-                },
-                "records": records
-            }
-            self._send_json(response)
+                    records.append({
+                        "row_index": idx,
+                        "ground_truth_raw": raw_gt,
+                        "ground_truth_mapped": mapped_gt,
+                        "predicted_label": event.predicted_label,
+                        "confidence": event.confidence,
+                        "is_attack": event.is_attack,
+                        "attack_category": event.attack_category,
+                        "severity": event.severity,
+                        "policy_triggered": event.policy_triggered,
+                        "is_match": is_match,
+                        "key_features": clean_feats
+                    })
+
+                response = {
+                    "success": True,
+                    "summary": {
+                        "dataset_file": target_file.name,
+                        "dataset_path": str(target_file),
+                        "model_used": predictor.bundle.model_name,
+                        "model_task": predictor.bundle.task_type,
+                        "model_labels": predictor.bundle.labels,
+                        "total_samples_tested": total_tested,
+                        "records_displayed": display_limit,
+                        "attacks_detected": attack_count,
+                        "benign_detected": benign_count,
+                        "has_ground_truth": has_ground_truth,
+                        "accuracy_percentage": accuracy,
+                        "correct_predictions": correct_count if has_ground_truth else None,
+                        "misclassified": (total_tested - correct_count) if has_ground_truth else None,
+                        "total_time_seconds": elapsed_sec,
+                        "latency_ms_per_sample": latency_ms,
+                        "predicted_distribution": predicted_categories,
+                        "ground_truth_distribution": ground_truth_categories if has_ground_truth else None
+                    },
+                    "records": records
+                }
+                self._send_json(response)
+            except Exception as exc:
+                logger.error(f"Error in /api/test: {exc}", exc_info=True)
+                self._send_error_json(f"Inference error: {exc}", status=500, details=traceback.format_exc())
 
         elif path == "/api/train":
-            dataset_path_str = body.get("dataset_path")
-            task_type = body.get("task_type", "binary")
-            model_name = body.get("model_name", "random_forest")
-            feature_selector = body.get("feature_selector", "lrrc")
-            n_features = int(body.get("n_features", 15))
-            sample_limit = int(body.get("sample_limit", 15000))
-            resampling_strategy = body.get("resampling_strategy")
-            use_class_weight = bool(body.get("use_class_weight", False))
+            try:
+                dataset_path_str = body.get("dataset_path")
+                task_type = body.get("task_type", "binary")
+                model_name = body.get("model_name", "random_forest")
+                feature_selector = body.get("feature_selector", "lrrc")
+                n_features = int(body.get("n_features", 15))
+                sample_limit = int(body.get("sample_limit", 15000))
+                resampling_strategy = body.get("resampling_strategy")
+                use_class_weight = bool(body.get("use_class_weight", False))
 
-            dataset_path = Path(dataset_path_str) if dataset_path_str else None
+                dataset_path = None
+                if dataset_path_str:
+                    dp = Path(dataset_path_str)
+                    if not dp.is_absolute() and not dp.exists():
+                        dp = (PROJECT_ROOT / dp).resolve()
+                    if dp.exists():
+                        dataset_path = dp
 
-            logger.info(
-                f"Web UI requested model training: {model_name} ({task_type}) on "
-                f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}"
-            )
+                logger.info(
+                    f"Web UI requested model training: {model_name} ({task_type}) on "
+                    f"{dataset_path or 'default'}, selector={feature_selector}, k={n_features}, limit={sample_limit}"
+                )
 
-            bundle, run = engine.train(
-                data_path=dataset_path,
-                task_type=task_type,
-                model_name=model_name,
-                feature_selector=feature_selector,
-                n_features=n_features,
-                sample_limit=sample_limit,
-                resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
-                use_class_weight=use_class_weight
-            )
+                bundle, run = engine.train(
+                    data_path=dataset_path,
+                    task_type=task_type,
+                    model_name=model_name,
+                    feature_selector=feature_selector,
+                    n_features=n_features,
+                    sample_limit=sample_limit,
+                    resampling_strategy=resampling_strategy if resampling_strategy != "none" else None,
+                    use_class_weight=use_class_weight
+                )
 
-            self._send_json({
-                "success": True,
-                "run": run.model_dump(),
-                "model_path": bundle.model_path,
-                "features_selected": bundle.selected_features,
-                "labels": bundle.labels
-            })
+                self._send_json({
+                    "success": True,
+                    "run": run.model_dump(),
+                    "model_path": bundle.model_path,
+                    "features_selected": bundle.selected_features,
+                    "labels": bundle.labels
+                })
+            except Exception as exc:
+                logger.error(f"Error in /api/train: {exc}", exc_info=True)
+                self._send_error_json(f"Training error: {exc}", status=500, details=traceback.format_exc())
 
         elif path == "/api/models/activate":
             model_name_or_path = body.get("model_path")
@@ -781,4 +815,30 @@ def run_web_server(host: str = "127.0.0.1", port: int = 8000) -> None:
         print("\n[!] Shutting down DEVRAKSHAK Web Dashboard cleanly...")
     finally:
         httpd.server_close()
+
+
+def main() -> None:
+    """Parse web server arguments and start the dashboard."""
+    parser = argparse.ArgumentParser(
+        description="DEVRAKSHAK Web-Based Management & Telemetry Dashboard"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host address to bind (default: 127.0.0.1)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port number to listen on (default: 8000)"
+    )
+
+    args = parser.parse_args()
+    run_web_server(host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
 
