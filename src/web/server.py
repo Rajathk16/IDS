@@ -425,7 +425,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             self._send_json({
                 "success": True,
                 "total_runs": len(runs),
-                "runs": [r.model_dump() for r in runs]
+                "runs": [r.model_dump(mode="json") for r in runs]
             })
 
         elif path == "/api/events":
@@ -436,7 +436,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             self._send_json({
                 "success": True,
                 "total_events": len(events),
-                "events": [e.model_dump() for e in events]
+                "events": [e.model_dump(mode="json") for e in events]
             })
 
         elif path == "/api/stats":
@@ -698,6 +698,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
 
                     records.append({
                         "row_index": idx,
+                        "timestamp": event.timestamp.isoformat(),
                         "ground_truth_raw": raw_gt,
                         "ground_truth_mapped": mapped_gt,
                         "predicted_label": event.predicted_label,

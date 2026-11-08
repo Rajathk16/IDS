@@ -74,6 +74,7 @@ interface ModelItem {
 
 interface TestRecord {
   row_index: number;
+  timestamp?: string;
   ground_truth_raw: string | null;
   ground_truth_mapped: string;
   predicted_label: string;
@@ -86,6 +87,31 @@ interface TestRecord {
   key_features: Record<string, number>;
   contributing_factor?: string;
 }
+
+const formatTimestamp = (ts: any): string => {
+  if (!ts) return "—";
+  try {
+    let d: Date;
+    if (typeof ts === "number") {
+      d = new Date(ts > 1e11 ? ts : ts * 1000);
+    } else {
+      const cleanTs = typeof ts === "string" ? ts.replace(" ", "T") : ts;
+      d = new Date(cleanTs);
+    }
+    if (isNaN(d.getTime())) return "—";
+
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    if (isToday) {
+      return `Today, ${time}`;
+    }
+    const date = d.toLocaleDateString([], { month: "short", day: "numeric" });
+    return `${date}, ${time}`;
+  } catch (_) {
+    return "—";
+  }
+};
 
 interface TestSummary {
   dataset_file: string;
@@ -344,6 +370,7 @@ export default function DevrakshakDashboard() {
       if (data.success) {
         setTestSummary(data.summary);
         setTestRecords(data.records);
+        setTestLoading(false);
         const totalTested = data.summary.total_samples_tested?.toLocaleString() || data.records.length;
         showToast(
           `Classified ${totalTested} flows in ${data.summary.total_time_seconds}s (${data.summary.latency_ms_per_sample} ms/flow)`,
@@ -352,6 +379,7 @@ export default function DevrakshakDashboard() {
         fetchStats();
         fetchStatus();
       } else {
+        setTestLoading(false);
         showToast(data.error || "Inference failed", "error");
       }
     } catch (err: any) {
@@ -392,6 +420,7 @@ export default function DevrakshakDashboard() {
           else if (errData.details) errMessage = errData.details;
         } catch (_) {}
         showToast(errMessage, "error");
+        setTestLoading(false);
         return;
       }
 
@@ -399,10 +428,13 @@ export default function DevrakshakDashboard() {
       if (data.success) {
         setTestSummary(data.summary);
         setTestRecords(data.records);
+        setTestLoading(false);
         const totalTested = data.summary.total_samples_tested?.toLocaleString() || data.records.length;
         showToast(`Inspected ${totalTested} flows. Database updated!`, "success");
-        await Promise.all([fetchStats(), fetchStatus()]);
+        fetchStats();
+        fetchStatus();
       } else {
+        setTestLoading(false);
         showToast(data.error || "Execution failed", "error");
       }
     } catch (err: any) {
@@ -462,8 +494,10 @@ export default function DevrakshakDashboard() {
                   clearInterval(pollInterval);
                   setTrainLoading(false);
                   if (job.run) setLatestRun(job.run);
+                  const acc = typeof job.accuracy === "number" ? (job.accuracy * 100).toFixed(2) : (job.run?.accuracy ? (job.run.accuracy * 100).toFixed(2) : "N/A");
+                  const f1 = typeof job.macro_f1 === "number" ? (job.macro_f1 * 100).toFixed(2) : (job.run?.macro_f1 ? (job.run.macro_f1 * 100).toFixed(2) : "N/A");
                   showToast(
-                    `Training complete! Accuracy: ${(job.accuracy * 100).toFixed(2)}% | Macro F1: ${(job.macro_f1 * 100).toFixed(2)}%`,
+                    `Training complete! Accuracy: ${acc}% | Macro F1: ${f1}%`,
                     "success"
                   );
                   fetchModels();
@@ -484,6 +518,7 @@ export default function DevrakshakDashboard() {
       }
 
       // Synchronous fallback
+      setTrainLoading(false);
       if (data.success) {
         setLatestRun(data.run);
         showToast(
@@ -499,7 +534,7 @@ export default function DevrakshakDashboard() {
     } catch (err: any) {
       showToast(err.message || "Failed to connect to backend", "error");
     } finally {
-      // For synchronous fallback, disable loading; for async, loading is stopped inside poller
+      setTrainLoading(false);
     }
   };
 
@@ -1108,7 +1143,7 @@ export default function DevrakshakDashboard() {
                         recentEvents.slice(0, 6).map((row: any, i: number) => {
                           const sev = (row.severity || "INFO").toUpperCase();
                           const isAttack = row.is_attack || sev === "CRITICAL" || sev === "HIGH";
-                          const timeStr = row.timestamp ? new Date(row.timestamp).toLocaleTimeString() : "—";
+                          const timeStr = formatTimestamp(row.timestamp);
                           const rateStr = row.raw_features?.Rate !== undefined ? `Rate: ${Number(row.raw_features.Rate).toFixed(1)}` : "";
                           const sumStr = row.raw_features?.["Tot sum"] !== undefined ? `Tot: ${Number(row.raw_features["Tot sum"]).toFixed(0)}` : "";
 
@@ -1538,6 +1573,7 @@ export default function DevrakshakDashboard() {
                     <thead className="text-content-secondary border-b border-border-subtle">
                       <tr>
                         <th className="py-2.5 px-3">Flow #</th>
+                        <th className="py-2.5 px-3">Timestamp</th>
                         <th className="py-2.5 px-3">Ground Truth</th>
                         <th className="py-2.5 px-3">Prediction</th>
                         <th className="py-2.5 px-3">Confidence</th>
@@ -1550,7 +1586,7 @@ export default function DevrakshakDashboard() {
                     <tbody className="divide-y divide-border-subtle">
                       {filteredTrafficRecords.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="py-8 text-center text-content-tertiary">
+                          <td colSpan={9} className="py-8 text-center text-content-tertiary">
                             No inspection flows loaded yet. Click &quot;Inspect Flows&quot; above.
                           </td>
                         </tr>
@@ -1558,6 +1594,9 @@ export default function DevrakshakDashboard() {
                         filteredTrafficRecords.map((r) => (
                           <tr key={r.row_index} className="hover:bg-base-elevated interactive-transition">
                             <td className="py-2 px-3 text-content-tertiary font-mono">#{r.row_index + 1}</td>
+                            <td className="py-2 px-3 text-content-secondary font-mono text-[11px] whitespace-nowrap">
+                              {formatTimestamp(r.timestamp)}
+                            </td>
                             <td className="py-2 px-3 text-content-secondary">{r.ground_truth_raw || "Unlabeled"}</td>
                             <td className="py-2 px-3">
                               <span
@@ -1823,8 +1862,8 @@ export default function DevrakshakDashboard() {
                         runs.slice(0, 15).map((r) => (
                           <tr key={r.run_id} className="hover:bg-base-elevated interactive-transition">
                             <td className="py-2 px-3 text-content-primary font-medium font-mono">{r.run_id}</td>
-                            <td className="py-2 px-3 text-content-secondary">
-                              {r.timestamp ? new Date(r.timestamp).toLocaleString() : "—"}
+                            <td className="py-2 px-3 text-content-secondary font-mono text-[11px] whitespace-nowrap">
+                              {formatTimestamp(r.timestamp)}
                             </td>
                             <td className="py-2 px-3 text-content-secondary font-mono">{r.task_type}</td>
                             <td className="py-2 px-3 text-content-primary">{r.model_name}</td>

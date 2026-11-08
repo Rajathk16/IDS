@@ -41,7 +41,7 @@ D:\mini project\
 │   │   └── app\
 │   │       ├── globals.css               # Tailwind CSS & custom SOC design tokens
 │   │       ├── layout.tsx                # Master page layout & metadata
-│   │       └── page.tsx                  # Single-Page Dashboard with 7 operational tabs
+│   │       └── page.tsx                  # SOC Dashboard with 4 streamlined operational tabs
 │   ├── next.config.mjs                   # Next.js config with API proxy rewrites to Port 8000
 │   ├── package.json                      # Next.js, React 18, Tailwind CSS, Lucide dependencies
 │   ├── postcss.config.mjs                # PostCSS configuration
@@ -256,8 +256,10 @@ The backend HTTP server (`src/web/server.py`) binds to `http://127.0.0.1:8000` a
 | `/api/policies`        | `POST` | `{ policies: [...] }`                                                                      | `{ success, message, policies: [...] }`                                                      | Updates and persists security policies      |
 | `/api/logs`            | `GET` | `?limit=100&severity=...`                                                                  | `{ success, total_lines, lines: [...] }`                                                     | Reads latest log lines from `iot_ids.log` |
 | `/api/audit`           | `POST` | `{ path: string, max_rows: int }`                                                          | `{ success, audit: DatasetAuditResult }`                                                     | Memory-conscious audit of dataset file      |
-| `/api/test`            | `POST` | `{ file_path: str, model_path?: str, sample_limit: int, record_events: bool }`             | `{ success, summary: TestSummary, records: [ TestRecord ] }`                                 | Runs offline inference on selected dataset  |
-| `/api/train`           | `POST` | `{ dataset_path, task_type, model_name, feature_selector, n_features, sample_limit, ... }` | `{ success, run: TrainingRun, model_path, features_selected }`                               | Spawns model training run                   |
+| `/api/test`            | `POST` | `{ file_path: str, model_path?: str, sample_limit: int, decision_threshold?: float, record_events: bool }` | `{ success, summary: TestSummary, records: [ TestRecord ], confusion_matrix?: ... }` | Runs offline inference on selected dataset (vectorized up to 10 Lakh flows) |
+| `/api/train`           | `POST` | `{ dataset_path, task_type, model_name, feature_selector, n_features, sample_limit, async: bool, ... }` | `{ success, job_id?: str, run?: TrainingRun, model_path?: str }`                           | Dispatches async background or sync model training run |
+| `/api/train/status`    | `GET`  | `?job_id=string`                                                                             | `{ success, job_id, status: QUEUED\|RUNNING\|SUCCESS\|FAILED, result, error }`              | Polls status of async background training job |
+| `/api/jobs`            | `GET`  | None                                                                                         | `{ success, jobs: [ ... ] }`                                                                 | Lists all registered in-memory training jobs |
 | `/api/models/activate` | `POST` | `{ model_path: str }`                                                                      | `{ success, active_model, task_type, labels }`                                               | Sets default model for inference            |
 | `/api/synthetic`       | `POST` | `{ n_samples: int, output_name: str }`                                                     | `{ success, file_path, samples_generated }`                                                  | Generates synthetic test traffic            |
 
@@ -369,19 +371,25 @@ graph TD
    start_fullstack.bat
    ```
 
-   *Installs frontend dependencies if needed, starts the Python AI backend on port 8000, starts Next.js on port 3000, and opens `http://localhost:3000/` in the default browser.*
+   *Installs frontend dependencies if needed, starts the Python AI backend (`python -m src.web.server`) on port 8000, starts Next.js on port 3000, and opens `http://localhost:3000/`.*
+
 2. **Standalone Web Server (Zero-Dependency Python Web Dashboard):**
 
+   ```cmd
+   start_web.bat
+   ```
+   *Or via terminal:*
    ```powershell
-   .\.venv\Scripts\python.exe src/web_server.py --port 8000
+   python -m src.web.server --port 8000
    ```
 
    *Serves the embedded client directly at `http://localhost:8000/` without requiring Node.js.*
+
 3. **Two-Terminal Manual Developer Execution:**
 
    - **Terminal 1 (Backend):**
      ```powershell
-     .\.venv\Scripts\python.exe src/web_server.py --port 8000
+     python -m src.web.server --port 8000
      ```
    - **Terminal 2 (Frontend):**
      ```powershell
@@ -395,7 +403,7 @@ graph TD
 ### Testing Entry Point:
 
 ```powershell
-uv run pytest --ignore=tests/test_tui.py
+uv run pytest -q
 ```
 
-*Executes all unit, integration, and web API tests.*
+*Executes all 36 unit, integration, and web API tests (100% passing).*
