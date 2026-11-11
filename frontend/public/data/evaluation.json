@@ -1,0 +1,2483 @@
+{
+  "available": true,
+  "source": "results/final_results.json",
+  "results": {
+    "8class_random_forest_class_weight_balanced": {
+      "accuracy": {
+        "mean": 0.5825,
+        "std": 0.0021
+      },
+      "balanced_accuracy": {
+        "mean": 0.4852,
+        "std": 0.0022
+      },
+      "macro_f1": {
+        "mean": 0.3848,
+        "std": 0.0024
+      },
+      "weighted_f1": {
+        "mean": 0.6377,
+        "std": 0.0022
+      },
+      "mcc": {
+        "mean": 0.3771,
+        "std": 0.0016
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "8class_random_forest_plain": {
+      "accuracy": {
+        "mean": 0.5824,
+        "std": 0.0014
+      },
+      "balanced_accuracy": {
+        "mean": 0.4848,
+        "std": 0.0015
+      },
+      "macro_f1": {
+        "mean": 0.3842,
+        "std": 0.0016
+      },
+      "weighted_f1": {
+        "mean": 0.6378,
+        "std": 0.0017
+      },
+      "mcc": {
+        "mean": 0.377,
+        "std": 0.001
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "8class_random_forest_smote": {
+      "accuracy": {
+        "mean": 0.583,
+        "std": 0.0013
+      },
+      "balanced_accuracy": {
+        "mean": 0.4879,
+        "std": 0.0035
+      },
+      "macro_f1": {
+        "mean": 0.3854,
+        "std": 0.003
+      },
+      "weighted_f1": {
+        "mean": 0.6386,
+        "std": 0.0014
+      },
+      "mcc": {
+        "mean": 0.3772,
+        "std": 0.0011
+      },
+      "latency_ms": {
+        "mean": 0.0015,
+        "std": 0.0003
+      }
+    },
+    "8class_random_forest_undersampling": {
+      "accuracy": {
+        "mean": 0.5835,
+        "std": 0.0011
+      },
+      "balanced_accuracy": {
+        "mean": 0.4836,
+        "std": 0.005
+      },
+      "macro_f1": {
+        "mean": 0.3861,
+        "std": 0.0017
+      },
+      "weighted_f1": {
+        "mean": 0.6391,
+        "std": 0.0013
+      },
+      "mcc": {
+        "mean": 0.3781,
+        "std": 0.0008
+      },
+      "latency_ms": {
+        "mean": 0.0014,
+        "std": 0.0001
+      }
+    },
+    "binary_random_forest_standard": {
+      "accuracy": {
+        "mean": 0.9865,
+        "std": 0.0001
+      },
+      "balanced_accuracy": {
+        "mean": 0.77,
+        "std": 0.0016
+      },
+      "macro_f1": {
+        "mean": 0.8359,
+        "std": 0.0011
+      },
+      "weighted_f1": {
+        "mean": 0.9848,
+        "std": 0.0001
+      },
+      "mcc": {
+        "mean": 0.6959,
+        "std": 0.0015
+      },
+      "latency_ms": {
+        "mean": 0.0007,
+        "std": 0.0001
+      },
+      "fpr": {
+        "mean": 0.4585,
+        "std": 0.0032
+      }
+    }
+  },
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "files": {
+    "finalResultsCsv": true,
+    "perClassMetrics": true,
+    "accuracyVsFeatures": true,
+    "featureStability": true
+  },
+  "perClassMetrics": [
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "Benign",
+      "precision": "0.6540301803459698",
+      "recall": "0.6746393318147305",
+      "f1_score": "0.6641749205755934",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "DDoS",
+      "precision": "0.03519061583577713",
+      "recall": "0.36363636363636365",
+      "f1_score": "0.06417112299465241",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "DoS",
+      "precision": "0.9438447188043684",
+      "recall": "0.6426236994962109",
+      "f1_score": "0.7646379567993479",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "Recon",
+      "precision": "0.3944554830163686",
+      "recall": "0.23082885775981396",
+      "f1_score": "0.29123297240656654",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "Web",
+      "precision": "0.16824598723651132",
+      "recall": "0.9590551181102362",
+      "f1_score": "0.28627165252544245",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "BruteForce",
+      "precision": "0.7053712480252765",
+      "recall": "0.529655990510083",
+      "f1_score": "0.6050135501355014",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "Spoofing",
+      "precision": "0.5617529880478087",
+      "recall": "0.2554347826086957",
+      "f1_score": "0.35118306351183065",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "1",
+      "class_name": "Mirai",
+      "precision": "0.019971469329529243",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.03664921465968586",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "Benign",
+      "precision": "0.6585365853658537",
+      "recall": "0.6765375854214123",
+      "f1_score": "0.6674157303370787",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "DDoS",
+      "precision": "0.03503184713375796",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06340057636887608",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "DoS",
+      "precision": "0.943322802686361",
+      "recall": "0.6434799982874024",
+      "f1_score": "0.765072200634619",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "Recon",
+      "precision": "0.3955836557516278",
+      "recall": "0.23210231991584077",
+      "f1_score": "0.2925535627050038",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "Web",
+      "precision": "0.1684406009202284",
+      "recall": "0.957007874015748",
+      "f1_score": "0.286461770528896",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "BruteForce",
+      "precision": "0.6891891891891891",
+      "recall": "0.5444839857651246",
+      "f1_score": "0.6083499005964215",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "Spoofing",
+      "precision": "0.5615079365079365",
+      "recall": "0.2563405797101449",
+      "f1_score": "0.35199004975124376",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "1",
+      "class_name": "Mirai",
+      "precision": "0.020833333333333332",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.0380952380952381",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "Benign",
+      "precision": "0.6566461427019196",
+      "recall": "0.6883067577828398",
+      "f1_score": "0.6721037998146432",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "DDoS",
+      "precision": "0.03741496598639456",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.0672782874617737",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "DoS",
+      "precision": "0.9439493384218582",
+      "recall": "0.6424524397379726",
+      "f1_score": "0.7645510283802375",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "Recon",
+      "precision": "0.4008329477093938",
+      "recall": "0.23979846077182881",
+      "f1_score": "0.30007621423127556",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "Web",
+      "precision": "0.16768580799377397",
+      "recall": "0.9500787401574803",
+      "f1_score": "0.2850595350595351",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "BruteForce",
+      "precision": "0.7187993680884676",
+      "recall": "0.5397390272835113",
+      "f1_score": "0.6165311653116531",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "Spoofing",
+      "precision": "0.5568627450980392",
+      "recall": "0.2572463768115942",
+      "f1_score": "0.35192069392812886",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "1",
+      "class_name": "Mirai",
+      "precision": "0.02295552367288379",
+      "recall": "0.25396825396825395",
+      "f1_score": "0.042105263157894736",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "Benign",
+      "precision": "0.6527319398606527",
+      "recall": "0.6757782839787395",
+      "f1_score": "0.6640552135795561",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "DDoS",
+      "precision": "0.03303303303303303",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.060109289617486336",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "DoS",
+      "precision": "0.9439128792647614",
+      "recall": "0.6420100186958569",
+      "f1_score": "0.7642257086309853",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "Recon",
+      "precision": "0.39390409629198214",
+      "recall": "0.224683018658989",
+      "f1_score": "0.286147445615767",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "Web",
+      "precision": "0.16755676060581162",
+      "recall": "0.9634645669291338",
+      "f1_score": "0.2854676527541236",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "BruteForce",
+      "precision": "0.7065040650406504",
+      "recall": "0.5154211150652431",
+      "f1_score": "0.5960219478737997",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "Spoofing",
+      "precision": "0.5633802816901409",
+      "recall": "0.2536231884057971",
+      "f1_score": "0.3497813866333542",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "1",
+      "class_name": "Mirai",
+      "precision": "0.021621621621621623",
+      "recall": "0.25396825396825395",
+      "f1_score": "0.039850560398505604",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "Benign",
+      "precision": "0.6605263157894737",
+      "recall": "0.667046317388003",
+      "f1_score": "0.6637703060068002",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "DDoS",
+      "precision": "0.034375",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06232294617563739",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "DoS",
+      "precision": "0.9432207640224024",
+      "recall": "0.6441507656738358",
+      "f1_score": "0.7655125041341236",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "Recon",
+      "precision": "0.40175815954362665",
+      "recall": "0.23786058357787498",
+      "f1_score": "0.29881060026431105",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "Web",
+      "precision": "0.16796102992345163",
+      "recall": "0.9502362204724409",
+      "f1_score": "0.2854642223536369",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "BruteForce",
+      "precision": "0.6990811638591118",
+      "recall": "0.5415183867141162",
+      "f1_score": "0.6102941176470589",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "Spoofing",
+      "precision": "0.5628517823639775",
+      "recall": "0.2717391304347826",
+      "f1_score": "0.3665241295051924",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "2",
+      "class_name": "Mirai",
+      "precision": "0.01969057665260197",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.03617571059431524",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "Benign",
+      "precision": "0.6626877165960724",
+      "recall": "0.6533788914198937",
+      "f1_score": "0.6580003823360734",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "DDoS",
+      "precision": "0.03618421052631579",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06528189910979229",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "DoS",
+      "precision": "0.943525767153682",
+      "recall": "0.6433087385291641",
+      "f1_score": "0.7650178627495906",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "Recon",
+      "precision": "0.3976987043125121",
+      "recall": "0.22772825424948784",
+      "f1_score": "0.28961729394782243",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "Web",
+      "precision": "0.16743687077075425",
+      "recall": "0.9585826771653543",
+      "f1_score": "0.28507868115399027",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "BruteForce",
+      "precision": "0.6731843575418994",
+      "recall": "0.571767497034401",
+      "f1_score": "0.6183450930083387",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "Spoofing",
+      "precision": "0.5571687840290381",
+      "recall": "0.27807971014492755",
+      "f1_score": "0.37099697885196375",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "2",
+      "class_name": "Mirai",
+      "precision": "0.020123839009287926",
+      "recall": "0.20634920634920634",
+      "f1_score": "0.036671368124118475",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "Benign",
+      "precision": "0.6612965093977752",
+      "recall": "0.6545178435839029",
+      "f1_score": "0.6578897157031101",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "DDoS",
+      "precision": "0.033783783783783786",
+      "recall": "0.30303030303030304",
+      "f1_score": "0.060790273556231005",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "DoS",
+      "precision": "0.9438494267569324",
+      "recall": "0.6426807860822903",
+      "f1_score": "0.7646799116997792",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "Recon",
+      "precision": "0.3942363671647584",
+      "recall": "0.22495985825812526",
+      "f1_score": "0.2864596185708746",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "Web",
+      "precision": "0.16823942502880343",
+      "recall": "0.9658267716535434",
+      "f1_score": "0.28656200355107",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "BruteForce",
+      "precision": "0.6800878477306003",
+      "recall": "0.5510083036773428",
+      "f1_score": "0.608781127129751",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "Spoofing",
+      "precision": "0.5591985428051002",
+      "recall": "0.27807971014492755",
+      "f1_score": "0.37144585601935876",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "2",
+      "class_name": "Mirai",
+      "precision": "0.01828410689170183",
+      "recall": "0.20634920634920634",
+      "f1_score": "0.03359173126614987",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "Benign",
+      "precision": "0.6611694152923538",
+      "recall": "0.6697038724373576",
+      "f1_score": "0.6654092795171633",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "DDoS",
+      "precision": "0.03508771929824561",
+      "recall": "0.36363636363636365",
+      "f1_score": "0.064",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "DoS",
+      "precision": "0.9431637519872814",
+      "recall": "0.6434657266408825",
+      "f1_score": "0.7650097986816319",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "Recon",
+      "precision": "0.3961380365165854",
+      "recall": "0.22944465976413267",
+      "f1_score": "0.29058270808498704",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "Web",
+      "precision": "0.16762415069325526",
+      "recall": "0.955748031496063",
+      "f1_score": "0.2852241752044365",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "BruteForce",
+      "precision": "0.7046347211311862",
+      "recall": "0.5320284697508897",
+      "f1_score": "0.6062859074011491",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "Spoofing",
+      "precision": "0.5582255083179297",
+      "recall": "0.27355072463768115",
+      "f1_score": "0.36717325227963526",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "2",
+      "class_name": "Mirai",
+      "precision": "0.019858156028368795",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.036458333333333336",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "Benign",
+      "precision": "0.6614028644876974",
+      "recall": "0.6837509491268033",
+      "f1_score": "0.6723912637670338",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "DDoS",
+      "precision": "0.034055727554179564",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06179775280898876",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "DoS",
+      "precision": "0.9439164096431044",
+      "recall": "0.6420528336354165",
+      "f1_score": "0.7642571986749341",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "Recon",
+      "precision": "0.3938783342928421",
+      "recall": "0.22728531089086984",
+      "f1_score": "0.2882421093283713",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "Web",
+      "precision": "0.16773378033030145",
+      "recall": "0.961259842519685",
+      "f1_score": "0.28562738354273415",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "BruteForce",
+      "precision": "0.7031857031857032",
+      "recall": "0.536773428232503",
+      "f1_score": "0.6088126471577531",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "Spoofing",
+      "precision": "0.5657894736842105",
+      "recall": "0.2726449275362319",
+      "f1_score": "0.36797066014669927",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "3",
+      "class_name": "Mirai",
+      "precision": "0.02118003025718608",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.03867403314917127",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "Benign",
+      "precision": "0.6566666666666666",
+      "recall": "0.673120728929385",
+      "f1_score": "0.6647919010123734",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "DDoS",
+      "precision": "0.04013377926421405",
+      "recall": "0.36363636363636365",
+      "f1_score": "0.07228915662650602",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "DoS",
+      "precision": "0.944181546680127",
+      "recall": "0.64069702721603",
+      "f1_score": "0.7633825329887091",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "Recon",
+      "precision": "0.38678201388190325",
+      "recall": "0.21288965173578428",
+      "f1_score": "0.27462324119705733",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "Web",
+      "precision": "0.16702268609901846",
+      "recall": "0.972755905511811",
+      "f1_score": "0.28509450072692866",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "BruteForce",
+      "precision": "0.6901931649331352",
+      "recall": "0.5510083036773428",
+      "f1_score": "0.612796833773087",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "Spoofing",
+      "precision": "0.5656565656565656",
+      "recall": "0.2536231884057971",
+      "f1_score": "0.35021888680425267",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "3",
+      "class_name": "Mirai",
+      "precision": "0.02177068214804064",
+      "recall": "0.23809523809523808",
+      "f1_score": "0.0398936170212766",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "Benign",
+      "precision": "0.6605675877520538",
+      "recall": "0.6716021260440395",
+      "f1_score": "0.666039156626506",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "DDoS",
+      "precision": "0.037037037037037035",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06666666666666667",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "DoS",
+      "precision": "0.94376558864832",
+      "recall": "0.6426236994962109",
+      "f1_score": "0.764611988453048",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "Recon",
+      "precision": "0.394805445592353",
+      "recall": "0.2263994241736338",
+      "f1_score": "0.2877753536490956",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "Web",
+      "precision": "0.16782044942585572",
+      "recall": "0.9620472440944882",
+      "f1_score": "0.2857877994011976",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "BruteForce",
+      "precision": "0.7085889570552147",
+      "recall": "0.5480427046263345",
+      "f1_score": "0.6180602006688963",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "Spoofing",
+      "precision": "0.5555555555555556",
+      "recall": "0.276268115942029",
+      "f1_score": "0.3690260133091349",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "3",
+      "class_name": "Mirai",
+      "precision": "0.022792022792022793",
+      "recall": "0.25396825396825395",
+      "f1_score": "0.04183006535947712",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "Benign",
+      "precision": "0.6591591591591591",
+      "recall": "0.6666666666666666",
+      "f1_score": "0.6628916572291431",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "DDoS",
+      "precision": "0.03900709219858156",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.06984126984126984",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "DoS",
+      "precision": "0.9437851211943303",
+      "recall": "0.6423810815053733",
+      "f1_score": "0.7644466334355177",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "Recon",
+      "precision": "0.39888849049838654",
+      "recall": "0.2463872432312718",
+      "f1_score": "0.30461717493240237",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "Web",
+      "precision": "0.16881877386031888",
+      "recall": "0.9470866141732284",
+      "f1_score": "0.2865583456425406",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "BruteForce",
+      "precision": "0.7027863777089783",
+      "recall": "0.538552787663108",
+      "f1_score": "0.6098052384150436",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "Spoofing",
+      "precision": "0.553763440860215",
+      "recall": "0.2798913043478261",
+      "f1_score": "0.37184115523465705",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "3",
+      "class_name": "Mirai",
+      "precision": "0.02185792349726776",
+      "recall": "0.25396825396825395",
+      "f1_score": "0.04025157232704402",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "Benign",
+      "precision": "0.656474141185353",
+      "recall": "0.6602126044039484",
+      "f1_score": "0.658338065493091",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "DDoS",
+      "precision": "0.03773584905660377",
+      "recall": "0.30303030303030304",
+      "f1_score": "0.06711409395973154",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "DoS",
+      "precision": "0.9438395535695555",
+      "recall": "0.6420813769284562",
+      "f1_score": "0.7642522253176598",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "Recon",
+      "precision": "0.39112783443905336",
+      "recall": "0.21870328331764577",
+      "f1_score": "0.2805397727272727",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "Web",
+      "precision": "0.16753855375728843",
+      "recall": "0.9683464566929134",
+      "f1_score": "0.2856545572795689",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "BruteForce",
+      "precision": "0.6833095577746077",
+      "recall": "0.5682087781731909",
+      "f1_score": "0.6204663212435233",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "Spoofing",
+      "precision": "0.56",
+      "recall": "0.2536231884057971",
+      "f1_score": "0.3491271820448878",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "4",
+      "class_name": "Mirai",
+      "precision": "0.0223463687150838",
+      "recall": "0.25396825396825395",
+      "f1_score": "0.0410783055198973",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "Benign",
+      "precision": "0.6628252788104089",
+      "recall": "0.6769172361427487",
+      "f1_score": "0.6697971450037565",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "DDoS",
+      "precision": "0.03741496598639456",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.0672782874617737",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "DoS",
+      "precision": "0.9429782436213304",
+      "recall": "0.6445503717763919",
+      "f1_score": "0.7657146732450005",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "Recon",
+      "precision": "0.39878638475395844",
+      "recall": "0.2328774707934223",
+      "f1_score": "0.2940436241610738",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "Web",
+      "precision": "0.16855398279211767",
+      "recall": "0.9563779527559055",
+      "f1_score": "0.2865974516281265",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "BruteForce",
+      "precision": "0.6942580164056674",
+      "recall": "0.5521945432977462",
+      "f1_score": "0.6151304922365378",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "Spoofing",
+      "precision": "0.5577981651376147",
+      "recall": "0.2753623188405797",
+      "f1_score": "0.36870830806549426",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "4",
+      "class_name": "Mirai",
+      "precision": "0.021244309559939303",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.038781163434903045",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "Benign",
+      "precision": "0.6608663457978526",
+      "recall": "0.6776765375854215",
+      "f1_score": "0.669165885660731",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "DDoS",
+      "precision": "0.03424657534246575",
+      "recall": "0.30303030303030304",
+      "f1_score": "0.06153846153846154",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "DoS",
+      "precision": "0.9431464011546427",
+      "recall": "0.6434942699339222",
+      "f1_score": "0.7650242627846211",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "Recon",
+      "precision": "0.3969733321029805",
+      "recall": "0.2381927910968385",
+      "f1_score": "0.2977368676032943",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "Web",
+      "precision": "0.1687691878314262",
+      "recall": "0.9522834645669291",
+      "f1_score": "0.2867235656709341",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "BruteForce",
+      "precision": "0.7035881435257411",
+      "recall": "0.534994068801898",
+      "f1_score": "0.6078167115902965",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "Spoofing",
+      "precision": "0.5565693430656934",
+      "recall": "0.276268115942029",
+      "f1_score": "0.3692493946731235",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "4",
+      "class_name": "Mirai",
+      "precision": "0.021337126600284494",
+      "recall": "0.23809523809523808",
+      "f1_score": "0.0391644908616188",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "Benign",
+      "precision": "0.6598360655737705",
+      "recall": "0.6723614274867122",
+      "f1_score": "0.6660398646107559",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "DDoS",
+      "precision": "0.03873239436619718",
+      "recall": "0.3333333333333333",
+      "f1_score": "0.0694006309148265",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "DoS",
+      "precision": "0.9434057075856871",
+      "recall": "0.6430518488918067",
+      "f1_score": "0.7647967410676398",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "Recon",
+      "precision": "0.3930097825054611",
+      "recall": "0.22911245224516916",
+      "f1_score": "0.28947184330185377",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "Web",
+      "precision": "0.16802565023908897",
+      "recall": "0.9573228346456693",
+      "f1_score": "0.2858755202332526",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "BruteForce",
+      "precision": "0.6962794229309036",
+      "recall": "0.5438908659549229",
+      "f1_score": "0.6107226107226107",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "Spoofing",
+      "precision": "0.5559633027522936",
+      "recall": "0.27445652173913043",
+      "f1_score": "0.36749545178896303",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "4",
+      "class_name": "Mirai",
+      "precision": "0.024251069900142655",
+      "recall": "0.2698412698412698",
+      "f1_score": "0.04450261780104712",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "Benign",
+      "precision": "0.6552359882005899",
+      "recall": "0.6746393318147305",
+      "f1_score": "0.6647961092405537",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "DDoS",
+      "precision": "0.03896103896103896",
+      "recall": "0.36363636363636365",
+      "f1_score": "0.07038123167155426",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "DoS",
+      "precision": "0.9435139435558161",
+      "recall": "0.6431660220639656",
+      "f1_score": "0.7649130549167041",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "Recon",
+      "precision": "0.3930630093420791",
+      "recall": "0.218980122916782",
+      "f1_score": "0.281264445471678",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "Web",
+      "precision": "0.16750354764763672",
+      "recall": "0.9666141732283464",
+      "f1_score": "0.28552821323905664",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "BruteForce",
+      "precision": "0.6979969183359014",
+      "recall": "0.5373665480427047",
+      "f1_score": "0.6072386058981233",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "Spoofing",
+      "precision": "0.5562130177514792",
+      "recall": "0.2554347826086957",
+      "f1_score": "0.3500931098696462",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "plain",
+      "seed": "5",
+      "class_name": "Mirai",
+      "precision": "0.02127659574468085",
+      "recall": "0.23809523809523808",
+      "f1_score": "0.0390625",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "Benign",
+      "precision": "0.6541159099298635",
+      "recall": "0.6727410782080486",
+      "f1_score": "0.6632977727868239",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "DDoS",
+      "precision": "0.03389830508474576",
+      "recall": "0.30303030303030304",
+      "f1_score": "0.06097560975609756",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "DoS",
+      "precision": "0.9438060890715424",
+      "recall": "0.6423953531518931",
+      "f1_score": "0.7644636169869481",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "Recon",
+      "precision": "0.3924772771224135",
+      "recall": "0.22473838657881623",
+      "f1_score": "0.28581487870999545",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "Web",
+      "precision": "0.16782391525098114",
+      "recall": "0.962992125984252",
+      "f1_score": "0.285834482436254",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "BruteForce",
+      "precision": "0.6967150496562261",
+      "recall": "0.5409252669039146",
+      "f1_score": "0.6090150250417362",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "Spoofing",
+      "precision": "0.563894523326572",
+      "recall": "0.25181159420289856",
+      "f1_score": "0.34815278647463993",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "class_weight_balanced",
+      "seed": "5",
+      "class_name": "Mirai",
+      "precision": "0.02351313969571231",
+      "recall": "0.2698412698412698",
+      "f1_score": "0.043256997455470736",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "Benign",
+      "precision": "0.6567957479119211",
+      "recall": "0.6567957479119211",
+      "f1_score": "0.6567957479119211",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "DDoS",
+      "precision": "0.03773584905660377",
+      "recall": "0.30303030303030304",
+      "f1_score": "0.06711409395973154",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "DoS",
+      "precision": "0.9439315091489004",
+      "recall": "0.641995747049337",
+      "f1_score": "0.7642217031216819",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "Recon",
+      "precision": "0.3991168784356132",
+      "recall": "0.24522451691489952",
+      "f1_score": "0.30379312710062417",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "Web",
+      "precision": "0.16868245702446946",
+      "recall": "0.9488188976377953",
+      "f1_score": "0.28644100028525243",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "BruteForce",
+      "precision": "0.6817528735632183",
+      "recall": "0.5628706998813761",
+      "f1_score": "0.6166341780376868",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "Spoofing",
+      "precision": "0.5636363636363636",
+      "recall": "0.25271739130434784",
+      "f1_score": "0.34896810506566606",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "undersampling",
+      "seed": "5",
+      "class_name": "Mirai",
+      "precision": "0.018842530282637954",
+      "recall": "0.2222222222222222",
+      "f1_score": "0.034739454094292806",
+      "support": "63.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "Benign",
+      "precision": "0.6549685999261174",
+      "recall": "0.673120728929385",
+      "f1_score": "0.6639206141172065",
+      "support": "2634.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "DDoS",
+      "precision": "0.0410958904109589",
+      "recall": "0.36363636363636365",
+      "f1_score": "0.07384615384615385",
+      "support": "33.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "DoS",
+      "precision": "0.9437215831709515",
+      "recall": "0.6428092309009691",
+      "f1_score": "0.764728853271758",
+      "support": "70069.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "Recon",
+      "precision": "0.3953619378462116",
+      "recall": "0.23315431039255854",
+      "f1_score": "0.2933268319866258",
+      "support": "18061.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "Web",
+      "precision": "0.16820902138978167",
+      "recall": "0.9560629921259842",
+      "f1_score": "0.28608453890014607",
+      "support": "6350.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "BruteForce",
+      "precision": "0.6976208749040675",
+      "recall": "0.5391459074733096",
+      "f1_score": "0.6082301773168284",
+      "support": "1686.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "Spoofing",
+      "precision": "0.5551181102362205",
+      "recall": "0.2554347826086957",
+      "f1_score": "0.34987593052109184",
+      "support": "1104.0"
+    },
+    {
+      "task": "8class",
+      "strategy": "smote",
+      "seed": "5",
+      "class_name": "Mirai",
+      "precision": "0.02361111111111111",
+      "recall": "0.2698412698412698",
+      "f1_score": "0.04342273307790549",
+      "support": "63.0"
+    }
+  ],
+  "featureCurve": [
+    {
+      "k": "5",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8031",
+      "accuracy": "0.9841",
+      "avg_cost": "0.46"
+    },
+    {
+      "k": "5",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.8006",
+      "accuracy": "0.984",
+      "avg_cost": "0.46"
+    },
+    {
+      "k": "5",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.7999",
+      "accuracy": "0.9839",
+      "avg_cost": "0.46"
+    },
+    {
+      "k": "5",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.8351",
+      "accuracy": "0.9861",
+      "avg_cost": "0.36"
+    },
+    {
+      "k": "5",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8376",
+      "accuracy": "0.9863",
+      "avg_cost": "0.36"
+    },
+    {
+      "k": "5",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8376",
+      "accuracy": "0.9862",
+      "avg_cost": "0.36"
+    },
+    {
+      "k": "5",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.6502",
+      "accuracy": "0.9782",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "5",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.652",
+      "accuracy": "0.9782",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "5",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.6563",
+      "accuracy": "0.9783",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "8",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8354",
+      "accuracy": "0.9864",
+      "avg_cost": "0.525"
+    },
+    {
+      "k": "8",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.8384",
+      "accuracy": "0.9866",
+      "avg_cost": "0.525"
+    },
+    {
+      "k": "8",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.8393",
+      "accuracy": "0.9867",
+      "avg_cost": "0.525"
+    },
+    {
+      "k": "8",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.837",
+      "accuracy": "0.9865",
+      "avg_cost": "0.4375"
+    },
+    {
+      "k": "8",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8371",
+      "accuracy": "0.9866",
+      "avg_cost": "0.4375"
+    },
+    {
+      "k": "8",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8369",
+      "accuracy": "0.9866",
+      "avg_cost": "0.4375"
+    },
+    {
+      "k": "8",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.6447",
+      "accuracy": "0.9777",
+      "avg_cost": "0.275"
+    },
+    {
+      "k": "8",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.6434",
+      "accuracy": "0.9777",
+      "avg_cost": "0.275"
+    },
+    {
+      "k": "8",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.6571",
+      "accuracy": "0.9781",
+      "avg_cost": "0.275"
+    },
+    {
+      "k": "10",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8346",
+      "accuracy": "0.9864",
+      "avg_cost": "0.54"
+    },
+    {
+      "k": "10",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.834",
+      "accuracy": "0.9864",
+      "avg_cost": "0.54"
+    },
+    {
+      "k": "10",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.833",
+      "accuracy": "0.9862",
+      "avg_cost": "0.54"
+    },
+    {
+      "k": "10",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.8424",
+      "accuracy": "0.9869",
+      "avg_cost": "0.39"
+    },
+    {
+      "k": "10",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8396",
+      "accuracy": "0.9867",
+      "avg_cost": "0.39"
+    },
+    {
+      "k": "10",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8372",
+      "accuracy": "0.9865",
+      "avg_cost": "0.39"
+    },
+    {
+      "k": "10",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.6523",
+      "accuracy": "0.9781",
+      "avg_cost": "0.32"
+    },
+    {
+      "k": "10",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.6564",
+      "accuracy": "0.9781",
+      "avg_cost": "0.32"
+    },
+    {
+      "k": "10",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.6515",
+      "accuracy": "0.9779",
+      "avg_cost": "0.32"
+    },
+    {
+      "k": "15",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8345",
+      "accuracy": "0.9865",
+      "avg_cost": "0.4667"
+    },
+    {
+      "k": "15",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.834",
+      "accuracy": "0.9864",
+      "avg_cost": "0.4667"
+    },
+    {
+      "k": "15",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.8345",
+      "accuracy": "0.9865",
+      "avg_cost": "0.4667"
+    },
+    {
+      "k": "15",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.836",
+      "accuracy": "0.9865",
+      "avg_cost": "0.3267"
+    },
+    {
+      "k": "15",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8358",
+      "accuracy": "0.9865",
+      "avg_cost": "0.3267"
+    },
+    {
+      "k": "15",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8369",
+      "accuracy": "0.9866",
+      "avg_cost": "0.3267"
+    },
+    {
+      "k": "15",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.7119",
+      "accuracy": "0.9802",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "15",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.7172",
+      "accuracy": "0.9805",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "15",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.7219",
+      "accuracy": "0.9806",
+      "avg_cost": "0.28"
+    },
+    {
+      "k": "20",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8328",
+      "accuracy": "0.9864",
+      "avg_cost": "0.43"
+    },
+    {
+      "k": "20",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.8305",
+      "accuracy": "0.9863",
+      "avg_cost": "0.43"
+    },
+    {
+      "k": "20",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.8328",
+      "accuracy": "0.9864",
+      "avg_cost": "0.43"
+    },
+    {
+      "k": "20",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.8367",
+      "accuracy": "0.9866",
+      "avg_cost": "0.315"
+    },
+    {
+      "k": "20",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8366",
+      "accuracy": "0.9866",
+      "avg_cost": "0.315"
+    },
+    {
+      "k": "20",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8346",
+      "accuracy": "0.9865",
+      "avg_cost": "0.315"
+    },
+    {
+      "k": "20",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.7845",
+      "accuracy": "0.9838",
+      "avg_cost": "0.3"
+    },
+    {
+      "k": "20",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.7836",
+      "accuracy": "0.9837",
+      "avg_cost": "0.3"
+    },
+    {
+      "k": "20",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.7851",
+      "accuracy": "0.9838",
+      "avg_cost": "0.3"
+    },
+    {
+      "k": "25",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8414",
+      "accuracy": "0.9869",
+      "avg_cost": "0.384"
+    },
+    {
+      "k": "25",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.8406",
+      "accuracy": "0.9869",
+      "avg_cost": "0.384"
+    },
+    {
+      "k": "25",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.8387",
+      "accuracy": "0.9867",
+      "avg_cost": "0.384"
+    },
+    {
+      "k": "25",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.8347",
+      "accuracy": "0.9864",
+      "avg_cost": "0.292"
+    },
+    {
+      "k": "25",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8385",
+      "accuracy": "0.9867",
+      "avg_cost": "0.292"
+    },
+    {
+      "k": "25",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.84",
+      "accuracy": "0.9868",
+      "avg_cost": "0.292"
+    },
+    {
+      "k": "25",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.7886",
+      "accuracy": "0.984",
+      "avg_cost": "0.348"
+    },
+    {
+      "k": "25",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.7899",
+      "accuracy": "0.984",
+      "avg_cost": "0.348"
+    },
+    {
+      "k": "25",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.7878",
+      "accuracy": "0.9839",
+      "avg_cost": "0.348"
+    },
+    {
+      "k": "39",
+      "selector": "select_k_best",
+      "seed": "1",
+      "macro_f1": "0.8388",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "select_k_best",
+      "seed": "2",
+      "macro_f1": "0.8393",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "select_k_best",
+      "seed": "3",
+      "macro_f1": "0.8385",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "lrrc_stability",
+      "seed": "1",
+      "macro_f1": "0.8381",
+      "accuracy": "0.9867",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "lrrc_stability",
+      "seed": "2",
+      "macro_f1": "0.8381",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "lrrc_stability",
+      "seed": "3",
+      "macro_f1": "0.8354",
+      "accuracy": "0.9866",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "all_features",
+      "seed": "1",
+      "macro_f1": "0.8388",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "all_features",
+      "seed": "2",
+      "macro_f1": "0.8393",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "all_features",
+      "seed": "3",
+      "macro_f1": "0.8385",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "variance_threshold",
+      "seed": "1",
+      "macro_f1": "0.8395",
+      "accuracy": "0.9869",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "variance_threshold",
+      "seed": "2",
+      "macro_f1": "0.8381",
+      "accuracy": "0.9868",
+      "avg_cost": "0.3436"
+    },
+    {
+      "k": "39",
+      "selector": "variance_threshold",
+      "seed": "3",
+      "macro_f1": "0.8335",
+      "accuracy": "0.9864",
+      "avg_cost": "0.3436"
+    }
+  ],
+  "featureStability": [
+    {
+      "feature": "Header_Length",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Protocol Type",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Time_To_Live",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Rate",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "fin_flag_number",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "syn_flag_number",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "rst_flag_number",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "psh_flag_number",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "ack_flag_number",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "ece_flag_number",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "cwr_flag_number",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "ack_count",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "syn_count",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "fin_count",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "rst_count",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "HTTP",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "HTTPS",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "DNS",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "Telnet",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "SMTP",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "SSH",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "IRC",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "TCP",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "UDP",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "DHCP",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "ARP",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "ICMP",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "IGMP",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "IPv",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "LLC",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "Tot sum",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Min",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "Max",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "AVG",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Std",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Tot size",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "IAT",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "0.0"
+    },
+    {
+      "feature": "Number",
+      "lrrc_selection_freq": "1.0",
+      "selectkbest_selection_freq": "1.0"
+    },
+    {
+      "feature": "Variance",
+      "lrrc_selection_freq": "0.0",
+      "selectkbest_selection_freq": "1.0"
+    }
+  ],
+  "unavailableSources": []
+}

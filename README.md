@@ -233,3 +233,15 @@ IDS/
 ├── pyproject.toml              # Dependencies & build configuration
 └── README.md                   # Project documentation
 ```
+
+## Frontend
+
+The DEVRAKSHAK IDS Console is a Next.js 14 frontend. Run the Python API on port `8000` separately; the existing Next.js `/api/*` proxy forwards requests to it. From the `frontend/` directory:
+
+```bash
+npm install
+node scripts/export-results.mjs
+npm run dev
+```
+
+The exporter reads available evaluation artifacts from `results/` and the split summary from `data/processed/dataset_build_summary.json`, then writes frontend data to `frontend/public/data/`. Missing result files are represented as unavailable rather than filled with placeholder metrics. The frontend is served on port `3000`.
