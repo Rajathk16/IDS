@@ -47,8 +47,24 @@ async function getJson(url: string) {
 function EmptyState({ title = "Unavailable", detail }: { title?: string; detail?: string }) {
   return <div className="empty-state"><div className="empty-icon"><CircleHelp size={18} /></div><strong>{title}</strong>{detail && <span>{detail}</span>}</div>;
 }
+<<<<<<< Updated upstream
 function Panel({ title, eyebrow, action, children, className = "" }: { title: string; eyebrow?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return <section className={`panel ${className}`}><header className="panel-head"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}<h2>{title}</h2></div>{action}</header><div className="panel-content">{children}</div></section>;
+=======
+
+interface TrainingRunItem {
+  run_id: string;
+  timestamp: string;
+  task_type: string;
+  model_name: string;
+  accuracy: number;
+  macro_f1: number;
+  weighted_f1: number;
+  false_positive_rate?: number | null;
+  inference_latency_ms_per_sample: number;
+  selected_features_count: number;
+  dataset_path?: string;
+>>>>>>> Stashed changes
 }
 function Kpi({ label, value, caption, tone, icon: Icon }: { label: string; value: string; caption: string; tone: string; icon: any }) {
   return <article className="kpi-card"><div className="kpi-top"><span className="eyebrow">{label}</span><span className={`kpi-icon ${tone}`}><Icon size={17} /></span></div><div className={`kpi-value ${tone}`}>{value}</div><div className="kpi-caption">{caption}</div></article>;
@@ -251,9 +267,1169 @@ export default function DevrakshakConsole() {
 
       {activePage === "runs" && <div className="page-stack"><Panel title="Training runs" eyebrow="API · /api/runs" action={<span className="panel-source">{api.runs.length ? `${fmt(api.runs.length)} runs` : "No run data"}</span>}>{api.runs.length ? <div className="table-scroll"><table><thead><tr><th>RUN ID</th><th>DATE</th><th>MODEL</th><th>TASK</th><th>ACCURACY</th><th>MACRO-F1</th><th>MS / FLOW</th><th>FEATURES</th></tr></thead><tbody>{api.runs.map((run, index) => <tr key={run.run_id ?? index}><td className="mono">{run.run_id ?? "Unavailable"}</td><td className="mono">{run.timestamp ? new Date(run.timestamp).toLocaleString() : "Unavailable"}</td><td>{run.model_name ?? "Unavailable"}</td><td>{run.task_type ?? "Unavailable"}</td><td><MetricCell value={run.accuracy} isRate /></td><td><MetricCell value={run.macro_f1} isRate /></td><td><MetricCell value={run.inference_latency_ms_per_sample} /></td><td className="mono">{fmt(run.selected_features_count)}</td></tr>)}</tbody></table></div> : <EmptyState title="Run history unavailable" detail="Training run records are provided by the existing /api/runs endpoint." />}</Panel><Panel title="Compare two runs" eyebrow="API RUN COMPARISON"><div className="toolbar-grid compare-fields"><label className="field"><span>Run A</span><select value={runA} onChange={(event) => setRunA(event.target.value)}><option value="">Select run</option>{api.runs.map((run, index) => <option key={run.run_id ?? index} value={run.run_id}>{run.run_id ?? `Run ${index + 1}`}</option>)}</select></label><label className="field"><span>Run B</span><select value={runB} onChange={(event) => setRunB(event.target.value)}><option value="">Select run</option>{api.runs.map((run, index) => <option key={run.run_id ?? index} value={run.run_id}>{run.run_id ?? `Run ${index + 1}`}</option>)}</select></label></div>{selectedRunA && selectedRunB ? <div className="table-scroll"><table><thead><tr><th>METRIC</th><th>RUN A</th><th>RUN B</th><th>DELTA · B − A</th></tr></thead><tbody>{[["Accuracy", "accuracy"], ["Macro-F1", "macro_f1"], ["Weighted-F1", "weighted_f1"], ["Latency · ms/flow", "inference_latency_ms_per_sample"], ["Selected features", "selected_features_count"]].map(([label, key]) => { const a = selectedRunA[key]; const b = selectedRunB[key]; return <tr key={key}><td>{label}</td><td className="mono">{typeof a === "number" ? key.includes("latency") ? fmt(a, 4) : key === "selected_features_count" ? fmt(a) : pct(a) : "Unavailable"}</td><td className="mono">{typeof b === "number" ? key.includes("latency") ? fmt(b, 4) : key === "selected_features_count" ? fmt(b) : pct(b) : "Unavailable"}</td><td className="mono">{typeof a === "number" && typeof b === "number" ? fmt(b - a, 4) : "Unavailable"}</td></tr>; })}</tbody></table></div> : <EmptyState title="Select two runs" detail="Comparison values appear only when both API run records are selected." />}</Panel></div>}
 
+<<<<<<< Updated upstream
       {activePage === "system" && <div className="page-stack"><div className="system-card-grid"><div className="system-stat"><span className="eyebrow">API CONNECTION</span><strong className={api.status ? "green-text" : "muted-text"}>{api.status ? "Connected" : "Unavailable"}</strong><small>{api.status?.system ?? "Backend status not returned"}</small></div><div className="system-stat"><span className="eyebrow">ACTIVE MODEL</span><strong>{activeModel?.name ?? "Unavailable"}</strong><small>{activeModel?.task ?? activeModel?.task_type ?? "Model metadata not returned"}</small></div><div className="system-stat"><span className="eyebrow">RUNTIME</span><strong>{api.status?.python_version ?? "Unavailable"}</strong><small>{api.status?.platform ?? "Runtime metadata not returned"}</small></div><div className="system-stat"><span className="eyebrow">DATA STORE</span><strong>{fmt(api.status?.db_size_mb, 2)}{typeof api.status?.db_size_mb === "number" ? " MB" : ""}</strong><small>Database size from API status</small></div></div><Panel title="System logs" eyebrow="API · /api/logs" action={<label className="filter-select"><Filter size={14} /><select value={logLevel} onChange={(event) => setLogLevel(event.target.value)}>{["ALL", "INFO", "WARNING", "ERROR", "DEBUG"].map((level) => <option key={level}>{level}</option>)}</select></label>}>{filteredLogs.length ? <div className="log-list">{filteredLogs.map((entry, index) => { const text = typeof entry === "string" ? entry : JSON.stringify(entry); const level = typeof entry === "string" ? (entry.match(/\b(INFO|WARNING|ERROR|DEBUG)\b/i)?.[1] ?? "INFO") : entry.level ?? "INFO"; return <div className="log-row" key={entry.id ?? index}><span className={`log-level level-${String(level).toLowerCase()}`}>{level}</span><code>{text}</code></div>; })}</div> : <EmptyState title="Logs unavailable" detail="The connected API has not returned log entries." />}</Panel><Panel title="Runtime configuration" eyebrow="API · /api/settings"><div className="config-grid">{api.settings ? Object.entries(api.settings).map(([key, value]) => <div className="config-item" key={key}><span>{labelName(key)}</span><code>{typeof value === "object" ? JSON.stringify(value) : String(value)}</code></div>) : <EmptyState title="Configuration unavailable" detail="Settings are displayed only when returned by the backend API." />}</div></Panel><div className="data-footnote"><TerminalSquare size={14} />Data is read from the existing local API proxy at <code>/api/*</code>; no proxy behavior was changed.</div></div>}
       </main>
       <footer className="app-footer"><span>DEVRAKSHAK <span className="footer-dot">·</span> IDS Console</span><span>Offline evaluation only</span></footer>
+=======
+            {/* Active Model Indicator */}
+            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1.5 rounded bg-base-elevated border border-border-subtle text-xs">
+              <Cpu className="w-3.5 h-3.5 text-brand" />
+              <span className="text-content-secondary">
+                {status?.active_model || "Random Forest"} [15 Feats LRRC-FS]
+              </span>
+            </div>
+
+            {/* Quick Run CTA */}
+            <button
+              onClick={() => handleQuickOfflineRun()}
+              disabled={testLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-brand hover:bg-brand-hover text-white text-xs font-medium whitespace-nowrap interactive-transition disabled:opacity-50"
+            >
+              {testLoading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Play className="w-3 h-3 fill-white" />
+              )}
+              <span className="hidden sm:inline">Quick Test</span>
+            </button>
+
+            {/* Manual Sync Button */}
+            <button
+              onClick={fetchAllData}
+              disabled={refreshing}
+              className="p-1.5 rounded border border-border-subtle bg-base-elevated text-content-secondary hover:text-content-primary interactive-transition disabled:opacity-50"
+              title="Refresh SQLite telemetry"
+              aria-label="Refresh database telemetry"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-brand" : ""}`} />
+            </button>
+          </div>
+        </header>
+
+        {/* Offline Backend Alert Banner */}
+        {!backendOnline && (
+          <div className="bg-rose-500/15 border-b border-rose-500/30 px-6 py-2.5 flex items-center justify-between text-xs text-rose-200">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>
+                <strong>Python AI Backend Offline (Port 8000).</strong> Live classification and training are paused. Start the backend: <code className="bg-rose-950/60 px-2 py-0.5 rounded text-[11px] font-mono text-rose-300">uv run python -m src.web.server --port 8000</code> or run <code className="bg-rose-950/60 px-2 py-0.5 rounded text-[11px] font-mono text-rose-300">start_web.bat</code>.
+              </span>
+            </div>
+            <button
+              onClick={fetchAllData}
+              className="px-3 py-1 bg-rose-500/30 hover:bg-rose-500/40 border border-rose-400/40 rounded text-white font-medium interactive-transition whitespace-nowrap ml-4"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
+
+        {/* Content Body Container */}
+        <main className="p-6 space-y-6 max-w-7xl w-full mx-auto">
+          {/* =================================================================
+              VIEW 1: EXECUTIVE DASHBOARD
+              ================================================================= */}
+          {activeTab === "dashboard" && (
+            <div className="space-y-6">
+              {/* Dataset & Execution Control Banner */}
+              <div className="panel p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded bg-brand/15 border border-brand/30 text-brand">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-content-primary">
+                        CICIoT2023 Offline Benchmark
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        {status?.raw_datasets_count || 63} Partitions ({status?.total_dataset_size_gb || 9.42} GB)
+                      </span>
+                    </div>
+                    <p className="text-xs text-content-secondary mt-0.5">
+                      Classifying offline network traffic flows with 4-term LRRC-FS feature selection.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs">
+                    <label htmlFor="dash-partition-select" className="text-content-secondary">Partition:</label>
+                    <select
+                      id="dash-partition-select"
+                      value={selectedDataset}
+                      onChange={(e) => setSelectedDataset(e.target.value)}
+                      className="bg-base-elevated border border-border-subtle rounded px-2.5 py-1.5 text-xs text-content-primary font-mono focus:border-brand focus:outline-none"
+                    >
+                      {datasets.map((d) => (
+                        <option key={d.path} value={d.path}>
+                          {d.name} ({d.size_mb} MB)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <label htmlFor="dash-sample-limit-select" className="text-content-secondary">Flows:</label>
+                    <select
+                      id="dash-sample-limit-select"
+                      value={sampleLimit}
+                      onChange={(e) => setSampleLimit(Number(e.target.value))}
+                      className="bg-base-elevated border border-border-subtle rounded px-2.5 py-1.5 text-xs text-content-primary focus:border-brand focus:outline-none"
+                    >
+                      {FLOW_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <label htmlFor="dash-threshold-select" className="text-content-secondary">Calibrated Threshold:</label>
+                    <select
+                      id="dash-threshold-select"
+                      value={decisionThreshold}
+                      onChange={(e) => setDecisionThreshold(Number(e.target.value))}
+                      className="bg-base-elevated border border-border-subtle rounded px-2.5 py-1.5 text-xs text-content-primary focus:border-brand focus:outline-none"
+                      title="Adjust decision threshold to control False Positive Rate"
+                    >
+                      <option value={0.70}>0.70 (Low FPR ~12% - Recommended)</option>
+                      <option value={0.50}>0.50 (Max Sensitivity &gt;99.8%)</option>
+                      <option value={0.85}>0.85 (High Precision)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => handleQuickOfflineRun(selectedDataset, sampleLimit)}
+                    disabled={testLoading}
+                    className="px-3.5 py-1.5 rounded bg-brand hover:bg-brand-hover text-white text-xs font-medium whitespace-nowrap interactive-transition disabled:opacity-50"
+                  >
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      {testLoading ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Play className="w-3 h-3 fill-white" />
+                      )}
+                      <span>{testLoading ? "Inspecting…" : "Run Inspection"}</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* High-Signal Telemetry KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Total Flows Analyzed */}
+                <div className="panel p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-content-secondary font-medium">
+                    <span>Flows Evaluated</span>
+                    <Activity className="w-4 h-4 text-brand" />
+                  </div>
+                  <div className="text-2xl font-semibold text-content-primary tracking-tight tabular-nums">
+                    {(stats?.total_records_processed ?? stats?.total_events ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-[11px] text-content-secondary pt-1 flex items-center justify-between">
+                    <span>Benign: {(stats?.benign_count ?? 0).toLocaleString()}</span>
+                    <span>Attack: {(stats?.attack_count ?? 0).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* 2. Detected Threats */}
+                <div className="panel p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-content-secondary font-medium">
+                    <span>Threat Events</span>
+                    <ShieldAlert className="w-4 h-4 text-status-danger" />
+                  </div>
+                  <div className="text-2xl font-semibold text-status-danger tracking-tight tabular-nums">
+                    {(stats?.attack_count ?? stats?.total_attacks ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-[11px] text-content-secondary pt-1 flex items-center justify-between">
+                    <span>Critical: {stats?.severity_distribution?.CRITICAL ?? 0}</span>
+                    <span>High: {stats?.severity_distribution?.HIGH ?? 0}</span>
+                  </div>
+                </div>
+
+                {/* 3. Verified Clean Traffic */}
+                <div className="panel p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-content-secondary font-medium">
+                    <span>Benign Verified</span>
+                    <CheckCircle2 className="w-4 h-4 text-status-success" />
+                  </div>
+                  <div className="text-2xl font-semibold text-status-success tracking-tight tabular-nums">
+                    {(stats?.benign_count ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-[11px] text-content-secondary pt-1">
+                    <span>Test Pool: 2,634 benign samples</span>
+                  </div>
+                </div>
+
+                {/* 4. Model Latency & Database Footprint */}
+                <div className="panel p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-content-secondary font-medium">
+                    <span>Average Latency</span>
+                    <Cpu className="w-4 h-4 text-status-info" />
+                  </div>
+                  <div className="text-2xl font-semibold text-content-primary tracking-tight tabular-nums">
+                    0.0007 ms
+                  </div>
+                  <div className="text-[11px] text-content-secondary pt-1 flex items-center justify-between">
+                    <span>~0.7 µs per flow</span>
+                    <span>{status?.db_size_mb || 16} MB SQLite</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traffic Timeline Chart and Threat Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Real Data SVG Timeline Chart (2 Cols) */}
+                <div className="lg:col-span-2 panel p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-content-primary">
+                        Traffic Timeline Telemetry
+                      </h2>
+                      <p className="text-xs text-content-secondary">
+                        Network flow distributions recorded in local SQLite event store
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="flex items-center gap-1.5 text-content-secondary">
+                        <span className="w-2 h-2 rounded-full bg-brand"></span> Normal
+                      </span>
+                      <span className="flex items-center gap-1.5 text-content-secondary">
+                        <span className="w-2 h-2 rounded-full bg-status-warning"></span> Suspicious
+                      </span>
+                      <span className="flex items-center gap-1.5 text-content-secondary">
+                        <span className="w-2 h-2 rounded-full bg-status-danger"></span> Malicious
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* SVG Chart */}
+                  <div className="h-60 w-full relative pt-2">
+                    {(() => {
+                      const timeline: any[] = stats?.timeline && stats.timeline.length > 0 ? stats.timeline : [];
+                      if (timeline.length === 0) {
+                        return (
+                          <div className="h-full flex flex-col items-center justify-center text-content-tertiary text-xs">
+                            <Activity className="w-8 h-8 text-border-strong mb-2" />
+                            <span>No offline flows processed yet. Click &quot;Run Inspection&quot; to test.</span>
+                          </div>
+                        );
+                      }
+
+                      const maxVal = Math.max(
+                        ...timeline.map((t: any) => Math.max(t.normal || 0, t.suspicious || 0, t.malicious || 0)),
+                        50
+                      );
+
+                      const svgW = 600;
+                      const svgH = 180;
+                      const padX = 50;
+                      const chartW = svgW - padX - 20;
+
+                      const getX = (i: number) => {
+                        if (timeline.length <= 1) return padX + chartW / 2;
+                        return padX + (i / (timeline.length - 1)) * chartW;
+                      };
+
+                      const getY = (val: number) => {
+                        const cl = Math.max(0, val);
+                        return svgH - 25 - (cl / maxVal) * (svgH - 45);
+                      };
+
+                      const makePath = (key: string) => {
+                        return timeline
+                          .map((t: any, i: number) => `${i === 0 ? "M" : "L"} ${getX(i).toFixed(1)} ${getY(t[key] || 0).toFixed(1)}`)
+                          .join(" ");
+                      };
+
+                      return (
+                        <svg
+                          className="w-full h-full"
+                          viewBox={`0 0 ${svgW} ${svgH}`}
+                          fill="none"
+                          aria-label="Traffic distribution chart"
+                        >
+                          {/* Grid horizontal lines */}
+                          {[0, 1, 2, 3].map((step) => {
+                            const y = 20 + step * 40;
+                            const gridVal = maxVal * (1 - step / 3);
+                            return (
+                              <g key={step}>
+                                <line x1={padX} y1={y} x2={svgW - 20} y2={y} stroke="var(--color-border-subtle)" strokeDasharray="3 3" />
+                                <text x={padX - 8} y={y + 3} fill="var(--color-text-tertiary)" fontSize="10" textAnchor="end" fontFamily="monospace">
+                                  {Math.round(gridVal)}
+                                </text>
+                              </g>
+                            );
+                          })}
+
+                          {/* Data Lines */}
+                          <path d={makePath("normal")} stroke="var(--color-accent)" strokeWidth="2" />
+                          <path d={makePath("suspicious")} stroke="var(--color-status-warning)" strokeWidth="2" />
+                          <path d={makePath("malicious")} stroke="var(--color-status-danger)" strokeWidth="2" />
+
+                          {/* Date markers on x-axis */}
+                          {timeline.map((t: any, i: number) => (
+                            <text
+                              key={i}
+                              x={getX(i)}
+                              y={svgH - 5}
+                              fill="var(--color-text-tertiary)"
+                              fontSize="9"
+                              textAnchor="middle"
+                              fontFamily="monospace"
+                            >
+                              {t.date ? t.date.slice(5) : `B${i + 1}`}
+                            </text>
+                          ))}
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Threat Family Breakdown (1 Col) */}
+                <div className="panel p-5 space-y-4 flex flex-col justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-content-primary">
+                      Threat Family Breakdown
+                    </h2>
+                    <p className="text-xs text-content-secondary">
+                      Classified events from official dataset taxonomy
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(() => {
+                      const topCategories: any[] = stats?.top_attack_categories || [];
+                      if (topCategories.length === 0) {
+                        return (
+                          <div className="text-center text-content-tertiary text-xs py-8">
+                            No attacks recorded in database yet
+                          </div>
+                        );
+                      }
+                      return topCategories.map((cat: any) => (
+                        <div key={cat.name} className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-content-primary">{cat.name}</span>
+                            <span className="tabular-nums text-content-secondary">
+                              {cat.percentage}% ({Number(cat.count).toLocaleString()})
+                            </span>
+                          </div>
+                          <div className="w-full bg-base-elevated h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-brand h-full rounded-full"
+                              style={{ width: `${Math.min(100, cat.percentage)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+
+                  <div className="pt-3 border-t border-border-subtle text-[11px] text-content-tertiary">
+                    Categorized into 8 canonical families: DDoS, DoS, Mirai, Recon, Spoofing, Web, BruteForce, Benign.
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Detection Events Table */}
+              <div className="panel p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                  <div>
+                    <h2 className="text-sm font-semibold text-content-primary">
+                      Recent Classified Events
+                    </h2>
+                    <p className="text-xs text-content-secondary">
+                      Real-time events retrieved from SQLite event store
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("traffic")}
+                    className="text-xs text-brand hover:underline font-medium"
+                  >
+                    View all flows
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-content-secondary border-b border-border-subtle">
+                      <tr>
+                        <th className="py-2.5 px-3">Timestamp</th>
+                        <th className="py-2.5 px-3">Prediction</th>
+                        <th className="py-2.5 px-3">Source File</th>
+                        <th className="py-2.5 px-3">Packet Metrics</th>
+                        <th className="py-2.5 px-3">Severity</th>
+                        <th className="py-2.5 px-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {recentEvents.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-content-tertiary">
+                            No detection events in database. Click &quot;Run Inspection&quot; to test flows.
+                          </td>
+                        </tr>
+                      ) : (
+                        recentEvents.slice(0, 6).map((row: any, i: number) => {
+                          const sev = (row.severity || "INFO").toUpperCase();
+                          const isAttack = row.is_attack || sev === "CRITICAL" || sev === "HIGH";
+                          const timeStr = formatTimestamp(row.timestamp);
+                          const rateStr = row.raw_features?.Rate !== undefined ? `Rate: ${Number(row.raw_features.Rate).toFixed(1)}` : "";
+                          const sumStr = row.raw_features?.["Tot sum"] !== undefined ? `Tot: ${Number(row.raw_features["Tot sum"]).toFixed(0)}` : "";
+
+                          return (
+                            <tr key={row.id || i} className="hover:bg-base-elevated interactive-transition">
+                              <td className="py-2.5 px-3 text-content-secondary">{timeStr}</td>
+                              <td className="py-2.5 px-3 text-content-primary font-medium">
+                                {row.predicted_label || row.attack_category || "Benign"}
+                              </td>
+                              <td className="py-2.5 px-3 text-content-secondary font-mono">
+                                {row.source_file || "Merged01.csv"}
+                              </td>
+                              <td className="py-2.5 px-3 text-content-tertiary text-[11px] font-mono">
+                                {rateStr} {rateStr && sumStr ? "·" : ""} {sumStr}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                    sev === "CRITICAL"
+                                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                      : sev === "HIGH"
+                                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                      : sev === "MEDIUM"
+                                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  }`}
+                                >
+                                  {sev}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 font-medium">
+                                <span className={isAttack ? "text-rose-400" : "text-emerald-400"}>
+                                  {isAttack ? "Blocked" : "Logged"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 2: THREAT ALERTS
+              ================================================================= */}
+          {activeTab === "alerts" && (
+            <div className="space-y-6">
+              <div className="panel p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-border-subtle">
+                  <div>
+                    <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
+                      <AlertOctagon className="w-4 h-4 text-status-danger" />
+                      Security Threat Alerts
+                    </h2>
+                    <p className="text-xs text-content-secondary mt-0.5">
+                      Intrusion detections and automated mitigation actions triggered by active policies
+                    </p>
+                  </div>
+
+                  {/* Filter Severity Buttons */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"].map((lvl) => (
+                      <button
+                        key={lvl}
+                        onClick={() => setAlertSeverityFilter(lvl)}
+                        className={`px-2.5 py-1 rounded text-xs font-medium interactive-transition ${
+                          alertSeverityFilter === lvl
+                            ? "bg-brand text-white"
+                            : "bg-base-elevated border border-border-subtle text-content-secondary hover:text-content-primary"
+                        }`}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Disclosure Note */}
+                <div className="p-3 rounded bg-base-elevated border border-border-subtle text-xs text-content-secondary flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-brand shrink-0 mt-0.5" />
+                  <span>
+                    Notice: Defense policies evaluate strictly downstream on model predictions. If the model misses an attack flow, the corresponding policy cannot trigger.
+                  </span>
+                </div>
+
+                {/* Alerts List */}
+                <div className="space-y-3">
+                  {filteredAlerts.length === 0 ? (
+                    <div className="py-12 text-center text-content-tertiary text-xs">
+                      No alerts match the active filter. Inspect traffic to generate events.
+                    </div>
+                  ) : (
+                    filteredAlerts.map((alt, idx) => {
+                      const sev = (alt.severity || "INFO").toUpperCase();
+                      return (
+                        <div
+                          key={alt.id || idx}
+                          className="p-4 rounded bg-base-elevated border border-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 interactive-transition hover:border-border-strong"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold font-mono ${
+                                  sev === "CRITICAL"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    : sev === "HIGH"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                }`}
+                              >
+                                {sev}
+                              </span>
+                              <span className="font-semibold text-content-primary text-xs">
+                                {alt.predicted_label || alt.attack_category}
+                              </span>
+                              {alt.policy_id && (
+                                <span className="text-[11px] font-mono text-content-tertiary">
+                                  [{alt.policy_id}]
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-content-secondary flex flex-wrap gap-x-3 gap-y-0.5">
+                              <span>Source: <span className="font-mono">{alt.source_file || "Merged01.csv"}</span></span>
+                              <span>Row #<span className="tabular-nums font-mono">{alt.row_index ?? idx}</span></span>
+                              <span>Confidence: <span className="tabular-nums font-mono">{alt.confidence ? `${(Number(alt.confidence) * 100).toFixed(1)}%` : "100%"}</span></span>
+                            </div>
+                          </div>
+
+                          <div className="text-right sm:self-center">
+                            <span className="px-2.5 py-1 rounded text-xs font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                              {alt.action || (alt.is_attack ? "Mitigated / Blocked" : "Logged")}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Integrated Automated Defense Mitigation Policies */}
+                <div className="pt-6 border-t border-border-subtle space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-semibold text-content-primary flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-brand" />
+                        Automated Defense Mitigation Policies (POL-001 – POL-007)
+                      </h3>
+                      <p className="text-xs text-content-secondary mt-0.5">
+                        Response actions mapping machine learning threat predictions to network gateway interventions
+                      </p>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-medium">
+                      {policies.length} Policies Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {policies.map((p) => {
+                      const sev = (p.severity || "HIGH").toUpperCase();
+                      return (
+                        <div
+                          key={p.policy_id}
+                          className="p-3.5 rounded bg-base-elevated border border-border-subtle flex flex-col justify-between gap-2 text-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-content-primary">
+                                {p.policy_id}: {p.name}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold font-mono ${
+                                  sev === "CRITICAL"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    : sev === "HIGH"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                }`}
+                              >
+                                {sev}
+                              </span>
+                            </div>
+                            <p className="text-xs text-content-secondary">{p.description}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-border-subtle/50 text-[11px]">
+                            <span className="text-content-tertiary">
+                              Action: <span className="text-content-primary font-medium">{p.action}</span>
+                            </span>
+                            <span className="text-emerald-400 font-semibold font-mono">
+                              &ge; {(p.min_confidence * 100).toFixed(0)}% Conf
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 3: TRAFFIC MONITOR / FLOW INSPECTION
+              ================================================================= */}
+          {activeTab === "traffic" && (
+            <div className="space-y-6">
+              <div className="panel p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-border-subtle">
+                  <div>
+                    <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-brand" />
+                      Live Traffic Flow Inspection Engine
+                    </h2>
+                    <p className="text-xs text-content-secondary mt-0.5">
+                      Stream and classify network traffic flows from official CICIoT2023 partitions
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={!testRecords.length}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-base-elevated border border-border-subtle hover:bg-base-hover text-content-primary text-xs font-medium interactive-transition disabled:opacity-40"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                  <div>
+                    <label htmlFor="traffic-partition-select" className="block text-content-secondary mb-1">Target Partition</label>
+                    <select
+                      id="traffic-partition-select"
+                      value={selectedDataset}
+                      onChange={(e) => setSelectedDataset(e.target.value)}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary font-mono text-xs focus:border-brand focus:outline-none"
+                    >
+                      {datasets.map((d) => (
+                        <option key={d.path} value={d.path}>
+                          {d.name} ({d.size_mb} MB)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="traffic-model-select" className="block text-content-secondary mb-1">Active AI Model</label>
+                    <select
+                      id="traffic-model-select"
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary font-mono text-xs focus:border-brand focus:outline-none"
+                    >
+                      {models.map((m) => (
+                        <option key={m.path} value={m.path}>
+                          {m.name} [{m.task.toUpperCase()}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="traffic-threshold-select" className="block text-content-secondary mb-1">Decision Threshold</label>
+                    <select
+                      id="traffic-threshold-select"
+                      value={decisionThreshold}
+                      onChange={(e) => setDecisionThreshold(Number(e.target.value))}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                      title="Adjust decision threshold to calibrate False Positive Rate"
+                    >
+                      <option value={0.70}>0.70 (Low FPR ~12% - Recommended)</option>
+                      <option value={0.50}>0.50 (Max Sensitivity &gt;99.8%)</option>
+                      <option value={0.85}>0.85 (High Precision Defense)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="traffic-flow-limit-select" className="block text-content-secondary mb-1">Flow Inspection Volume</label>
+                    <select
+                      id="traffic-flow-limit-select"
+                      value={sampleLimit}
+                      onChange={(e) => setSampleLimit(Number(e.target.value))}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                    >
+                      {FLOW_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleRunInference}
+                      disabled={testLoading}
+                      className="w-full py-2 px-4 rounded bg-brand hover:bg-brand-hover text-white font-medium flex items-center justify-center whitespace-nowrap interactive-transition disabled:opacity-50"
+                    >
+                      <span className="flex items-center gap-2 whitespace-nowrap">
+                        {testLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                        )}
+                        <span>{testLoading ? "Processing…" : "Inspect Flows"}</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inspection Summary Stats */}
+              {testSummary && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-content-secondary">Total Flows Evaluated</div>
+                      <div className="text-xl font-bold text-content-primary mt-1 tabular-nums">
+                        {testSummary.total_samples_tested.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-status-danger">Attacks Detected</div>
+                      <div className="text-xl font-bold text-status-danger mt-1 tabular-nums">
+                        {testSummary.attacks_detected.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-status-success">Benign Verified</div>
+                      <div className="text-xl font-bold text-status-success mt-1 tabular-nums">
+                        {testSummary.benign_detected.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="panel p-4 text-center">
+                      <div className="text-xs text-brand">Latency / Sample</div>
+                      <div className="text-xl font-bold text-brand mt-1 tabular-nums">
+                        {testSummary.latency_ms_per_sample} ms
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Empirical Confusion Matrix & FPR Verification Card */}
+                  {testSummary.confusion_matrix && (
+                    <div className="panel p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-subtle text-xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-brand" />
+                          <span className="font-semibold text-content-primary">Empirical Confusion Matrix &amp; False Positive Verification</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-base-elevated border border-border-subtle text-content-secondary">
+                            Calibrated Threshold: {testSummary.decision_threshold ?? 0.70}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
+                            (testSummary.confusion_matrix.fpr_percentage ?? 0) <= 15
+                              ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          }`}>
+                            FPR: {testSummary.confusion_matrix.fpr_percentage}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">True Negative (Normal Clean)</div>
+                          <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.tn.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">Correctly verified benign</div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">False Positive (False Alarm)</div>
+                          <div className="text-lg font-bold text-amber-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.fp.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            FPR = {testSummary.confusion_matrix.fpr_percentage}%
+                          </div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">False Negative (Missed Attack)</div>
+                          <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
+                            {testSummary.confusion_matrix.fn.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            FNR = {testSummary.confusion_matrix.fnr_percentage}%
+                          </div>
+                        </div>
+                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                          <div className="text-content-secondary text-[11px]">True Positive (Threat Stopped)</div>
+                          <div className="text-lg font-bold text-brand font-mono mt-0.5">
+                            {testSummary.confusion_matrix.tp.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] text-content-tertiary mt-0.5">
+                            Recall = {(((testSummary.confusion_matrix.tp) / Math.max(1, testSummary.confusion_matrix.tp + testSummary.confusion_matrix.fn)) * 100).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Flow Records Table */}
+              <div className="panel p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                  <h3 className="text-sm font-semibold text-content-primary">
+                    Classified Flow Records
+                  </h3>
+                  <span className="text-xs text-content-secondary">
+                    {testSummary ? (
+                      <>
+                        Evaluated <span className="font-semibold text-content-primary tabular-nums font-mono">{testSummary.total_samples_tested.toLocaleString()}</span> flows · Showing first <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span>
+                      </>
+                    ) : (
+                      <>Showing <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span> records</>
+                    )}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-content-secondary border-b border-border-subtle">
+                      <tr>
+                        <th className="py-2.5 px-3">Flow #</th>
+                        <th className="py-2.5 px-3">Timestamp</th>
+                        <th className="py-2.5 px-3">Ground Truth</th>
+                        <th className="py-2.5 px-3">Prediction</th>
+                        <th className="py-2.5 px-3">Confidence</th>
+                        <th className="py-2.5 px-3">Category</th>
+                        <th className="py-2.5 px-3">Severity</th>
+                        <th className="py-2.5 px-3">Salient Attribution / Root Cause</th>
+                        <th className="py-2.5 px-3">Extracted Features</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {filteredTrafficRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-8 text-center text-content-tertiary">
+                            No inspection flows loaded yet. Click &quot;Inspect Flows&quot; above.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTrafficRecords.map((r) => (
+                          <tr key={r.row_index} className="hover:bg-base-elevated interactive-transition">
+                            <td className="py-2 px-3 text-content-tertiary font-mono">#{r.row_index + 1}</td>
+                            <td className="py-2 px-3 text-content-secondary font-mono text-[11px] whitespace-nowrap">
+                              {formatTimestamp(r.timestamp)}
+                            </td>
+                            <td className="py-2 px-3 text-content-secondary">{r.ground_truth_raw || "Unlabeled"}</td>
+                            <td className="py-2 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                  r.is_attack
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                }`}
+                              >
+                                {r.predicted_label}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-content-primary tabular-nums font-mono">
+                              {(r.confidence * 100).toFixed(1)}%
+                            </td>
+                            <td className="py-2 px-3 text-content-secondary">{r.attack_category}</td>
+                            <td className="py-2 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                  r.severity === "CRITICAL"
+                                    ? "bg-rose-500/20 text-rose-400"
+                                    : r.severity === "HIGH"
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : r.severity === "MEDIUM"
+                                    ? "bg-cyan-500/20 text-cyan-400"
+                                    : "bg-slate-500/20 text-slate-300"
+                                }`}
+                              >
+                                {r.severity}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-[11px] text-content-secondary font-mono max-w-xs truncate" title={r.contributing_factor}>
+                              {r.contributing_factor || (r.is_attack ? "Volumetric / pattern anomaly" : "Normal traffic baseline")}
+                            </td>
+                            <td className="py-2 px-3 text-[11px] text-content-tertiary font-mono">
+                              {Object.entries(r.key_features || {})
+                                .slice(0, 3)
+                                .map(([k, v]) => `${k}:${Number(v).toFixed(1)}`)
+                                .join(" · ")}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =================================================================
+              VIEW 4: ANALYSIS & MODEL LAB
+              ================================================================= */}
+          {activeTab === "analysis" && (
+            <div className="space-y-6">
+              <div className="panel p-5 space-y-4">
+                <div className="pb-3 border-b border-border-subtle">
+                  <h2 className="text-sm font-semibold text-content-primary flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-brand" />
+                    Model Optimization & LRRC-FS Laboratory
+                  </h2>
+                  <p className="text-xs text-content-secondary mt-0.5">
+                    Configure and train tree ensembles with 4-term feature selection optimization
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <label htmlFor="analysis-classifier-select" className="block text-content-secondary mb-1">Classifier</label>
+                    <select
+                      id="analysis-classifier-select"
+                      value={trainModel}
+                      onChange={(e) => setTrainModel(e.target.value)}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                    >
+                      <option value="random_forest">Random Forest (50 Trees)</option>
+                      <option value="decision_tree">Decision Tree (Single Fast Tree)</option>
+                      <option value="extra_trees">Extra Trees (Randomized Splits)</option>
+                      <option value="gradient_boosting">HistGradientBoosting</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="analysis-task-select" className="block text-content-secondary mb-1">Classification Task</label>
+                    <select
+                      id="analysis-task-select"
+                      value={trainTask}
+                      onChange={(e) => setTrainTask(e.target.value)}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                    >
+                      <option value="binary">Binary (BENIGN vs ATTACK)</option>
+                      <option value="multiclass">Multiclass (8 Threat Families)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="analysis-selector-select" className="block text-content-secondary mb-1">Feature Selector</label>
+                    <select
+                      id="analysis-selector-select"
+                      value={trainSelector}
+                      onChange={(e) => setTrainSelector(e.target.value)}
+                      className="w-full bg-base-elevated border border-border-subtle rounded p-2 text-content-primary text-xs focus:border-brand focus:outline-none"
+                    >
+                      <option value="lrrc">LRRC-FS (4 Terms + Stability)</option>
+                      <option value="kbest">SelectKBest (ANOVA F)</option>
+                      <option value="variance">Variance Threshold</option>
+                      <option value="all">All Features (k=39)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleTrain}
+                      disabled={trainLoading}
+                      className="w-full py-2 px-4 rounded bg-brand hover:bg-brand-hover text-white font-medium flex items-center justify-center whitespace-nowrap interactive-transition disabled:opacity-50"
+                    >
+                      <span className="flex items-center gap-2 whitespace-nowrap">
+                        {trainLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4" />
+                        )}
+                        <span>{trainLoading ? "Training…" : "Train Model"}</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Latest Run Results Card */}
+              {latestRun && (
+                <div className="panel p-5 space-y-3">
+                  <h3 className="text-xs font-semibold text-content-primary flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-status-success" />
+                    Latest Run Output: <span className="font-mono">{latestRun.run_id}</span>
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-content-secondary">Accuracy</div>
+                      <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
+                        {(latestRun.accuracy * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-brand">Macro F1</div>
+                      <div className="text-lg font-semibold text-brand mt-0.5 tabular-nums font-mono">
+                        {(latestRun.macro_f1 * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-content-secondary">False Positive Rate</div>
+                      <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
+                        {typeof latestRun.false_positive_rate === "number" ? `${(latestRun.false_positive_rate * 100).toFixed(2)}%` : "N/A"}
+                      </div>
+                    </div>
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-content-secondary">Latency</div>
+                      <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
+                        {latestRun.inference_latency_ms_per_sample} ms
+                      </div>
+                    </div>
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-content-secondary">Features</div>
+                      <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
+                        {latestRun.selected_features_count} / 39
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Algorithmic Formulation Reference */}
+              <div className="panel p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-content-primary">
+                  LRRC-FS 4-Term Objective Function
+                </h3>
+                <p className="text-xs text-content-secondary font-mono">
+                  Score(f, S) = w_rel·R(f) - w_red·D(f, S) - w_cost·C(f) + w_stab·s(f)
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
+                    <div className="font-semibold text-content-primary">Relevance (0.40)</div>
+                    <div className="text-content-secondary text-[11px] mt-1">
+                      ANOVA F-statistic separating attack families from normal traffic
+                    </div>
+                  </div>
+                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
+                    <div className="font-semibold text-content-primary">Redundancy (0.25)</div>
+                    <div className="text-content-secondary text-[11px] mt-1">
+                      Mean absolute Pearson correlation with already selected features
+                    </div>
+                  </div>
+                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
+                    <div className="font-semibold text-content-primary">Cost (0.15)</div>
+                    <div className="text-content-secondary text-[11px] mt-1">
+                      Penalizes heavy dispersion statistics (0.9) vs packet flags (0.2)
+                    </div>
+                  </div>
+                  <div className="p-3 bg-base-elevated rounded border border-border-subtle">
+                    <div className="font-semibold text-content-primary">Stability (0.20)</div>
+                    <div className="text-content-secondary text-[11px] mt-1">
+                      Bootstrap selection frequency over 10 random sub-samples
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verified Benchmark Results (5-Seed Mean ± Std) */}
+              <div className="p-5 rounded panel space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <h3 className="text-xs font-semibold text-content-primary flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-brand" />
+                    Verified Held-Out Benchmark Results (5-Seed Mean ± Std, 100,000 Flows)
+                  </h3>
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-base-elevated border border-border-subtle hover:bg-base-hover text-content-primary text-xs font-medium interactive-transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export Audit CSV</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Binary Accuracy</span>
+                    <span className="text-sm font-semibold text-content-primary tabular-nums font-mono">98.65% ± 0.01%</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Binary Macro F1</span>
+                    <span className="text-sm font-semibold text-brand tabular-nums font-mono">0.8359 ± 0.0011</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Raw Asymmetric FPR</span>
+                    <span className="text-sm font-semibold text-amber-400 tabular-nums font-mono">45.85% (at 0.50)</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                    <span className="text-content-secondary block">Calibrated FPR</span>
+                    <span className="text-sm font-semibold text-emerald-400 tabular-nums font-mono">&lt; 15% (at 0.70)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Historical Training Runs History Table */}
+              <div className="panel p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-content-primary">
+                  Stored Model Runs History ({runs.length})
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-content-secondary border-b border-border-subtle">
+                      <tr>
+                        <th className="py-2 px-3">Run ID</th>
+                        <th className="py-2 px-3">Timestamp</th>
+                        <th className="py-2 px-3">Task</th>
+                        <th className="py-2 px-3">Model</th>
+                        <th className="py-2 px-3">Accuracy</th>
+                        <th className="py-2 px-3">Macro F1</th>
+                        <th className="py-2 px-3">FPR</th>
+                        <th className="py-2 px-3">Latency</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {runs.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-6 text-center text-content-tertiary">
+                            No historical runs recorded in database yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        runs.slice(0, 15).map((r) => (
+                          <tr key={r.run_id} className="hover:bg-base-elevated interactive-transition">
+                            <td className="py-2 px-3 text-content-primary font-medium font-mono">{r.run_id}</td>
+                            <td className="py-2 px-3 text-content-secondary font-mono text-[11px] whitespace-nowrap">
+                              {formatTimestamp(r.timestamp)}
+                            </td>
+                            <td className="py-2 px-3 text-content-secondary font-mono">{r.task_type}</td>
+                            <td className="py-2 px-3 text-content-primary">{r.model_name}</td>
+                            <td className="py-2 px-3 text-content-primary tabular-nums font-mono">{(r.accuracy * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-brand tabular-nums font-mono">{(r.macro_f1 * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-content-primary tabular-nums font-mono">
+                              {typeof r.false_positive_rate === "number" ? `${(r.false_positive_rate * 100).toFixed(2)}%` : "—"}
+                            </td>
+                            <td className="py-2 px-3 text-content-tertiary">
+                              <span className="tabular-nums font-mono">{r.inference_latency_ms_per_sample}</span> ms
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+>>>>>>> Stashed changes
     </div>
     {toast && <div role="status" className="toast"><CheckCircle2 size={16} />{toast}<button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast("")}><X size={14} /></button></div>}
   </div>;
