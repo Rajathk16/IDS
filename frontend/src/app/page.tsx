@@ -113,29 +113,60 @@ const formatTimestamp = (ts: any): string => {
   }
 };
 
+export interface BinaryConfusionMatrix {
+  tp: number;
+  tn: number;
+  fp: number;
+  fn: number;
+  fpr_percentage: number;
+  fnr_percentage: number;
+  precision_percentage?: number;
+  recall_percentage?: number;
+  f1_percentage?: number;
+  attack_support?: number;
+  benign_support?: number;
+}
+
+export interface MulticlassConfusionMatrix {
+  fpr_percentage: number;
+  macro_fpr_percentage?: number;
+  benign_fpr_percentage?: number;
+  labels: string[];
+  matrix: number[][];
+}
+
+export type ConfusionMatrixData = BinaryConfusionMatrix | MulticlassConfusionMatrix;
+
 interface TestSummary {
   dataset_file: string;
   dataset_path: string;
   model_used: string;
   model_task: string;
+  model_labels?: string[];
   decision_threshold?: number;
+  calibrated_threshold?: number | null;
+  calibration_note?: string | null;
   total_samples_tested: number;
+  records_displayed?: number;
   attacks_detected: number;
   benign_detected: number;
+  predicted_attack_rate?: number;
   has_ground_truth: boolean;
+  ground_truth_note?: string | null;
   accuracy_percentage: number | null;
+  false_positive_rate?: number | null;
+  fpr_percentage?: number | null;
+  fnr_percentage?: number | null;
+  precision_percentage?: number | null;
+  recall_percentage?: number | null;
+  f1_percentage?: number | null;
+  correct_predictions?: number | null;
+  misclassified?: number | null;
   total_time_seconds: number;
   latency_ms_per_sample: number;
-  confusion_matrix?: {
-    tp: number;
-    tn: number;
-    fp: number;
-    fn: number;
-    fpr_percentage: number;
-    fnr_percentage: number;
-    attack_support: number;
-    benign_support: number;
-  } | null;
+  predicted_distribution?: Record<string, number>;
+  ground_truth_distribution?: Record<string, number> | null;
+  confusion_matrix?: ConfusionMatrixData | null;
 }
 
 interface PolicyItem {
@@ -156,6 +187,7 @@ interface TrainingRunItem {
   accuracy: number;
   macro_f1: number;
   weighted_f1: number;
+  false_positive_rate?: number;
   inference_latency_ms_per_sample: number;
   selected_features_count: number;
   dataset_path?: string;
@@ -1465,25 +1497,25 @@ export default function DevrakshakDashboard() {
                     <div className="panel p-4 text-center">
                       <div className="text-xs text-content-secondary">Total Flows Evaluated</div>
                       <div className="text-xl font-bold text-content-primary mt-1 tabular-nums">
-                        {testSummary.total_samples_tested.toLocaleString()}
+                        {(testSummary.total_samples_tested ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <div className="panel p-4 text-center">
                       <div className="text-xs text-status-danger">Attacks Detected</div>
                       <div className="text-xl font-bold text-status-danger mt-1 tabular-nums">
-                        {testSummary.attacks_detected.toLocaleString()}
+                        {(testSummary.attacks_detected ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <div className="panel p-4 text-center">
                       <div className="text-xs text-status-success">Benign Verified</div>
                       <div className="text-xl font-bold text-status-success mt-1 tabular-nums">
-                        {testSummary.benign_detected.toLocaleString()}
+                        {(testSummary.benign_detected ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <div className="panel p-4 text-center">
                       <div className="text-xs text-brand">Latency / Sample</div>
                       <div className="text-xl font-bold text-brand mt-1 tabular-nums">
-                        {testSummary.latency_ms_per_sample} ms
+                        {typeof testSummary.latency_ms_per_sample === "number" ? testSummary.latency_ms_per_sample : "—"} ms
                       </div>
                     </div>
                   </div>
@@ -1494,58 +1526,145 @@ export default function DevrakshakDashboard() {
                       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-subtle text-xs">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-brand" />
-                          <span className="font-semibold text-content-primary">Empirical Confusion Matrix &amp; False Positive Verification</span>
+                          <span className="font-semibold text-content-primary">
+                            {testSummary.model_task === "multiclass" || ("matrix" in testSummary.confusion_matrix)
+                              ? "Empirical Multiclass Confusion Matrix & One-vs-Rest FPR"
+                              : "Empirical Confusion Matrix & False Positive Verification"}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-base-elevated border border-border-subtle text-content-secondary">
-                            Calibrated Threshold: {testSummary.decision_threshold ?? 0.70}
-                          </span>
+                          {typeof testSummary.decision_threshold === "number" && (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-base-elevated border border-border-subtle text-content-secondary">
+                              Calibrated Threshold: {testSummary.decision_threshold ?? 0.70}
+                            </span>
+                          )}
                           <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
                             (testSummary.confusion_matrix.fpr_percentage ?? 0) <= 15
                               ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                               : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
                           }`}>
-                            FPR: {testSummary.confusion_matrix.fpr_percentage}%
+                            {"matrix" in testSummary.confusion_matrix ? "OvR Macro FPR" : "FPR"}: {typeof testSummary.confusion_matrix.fpr_percentage === "number" ? `${testSummary.confusion_matrix.fpr_percentage}%` : "—"}
                           </span>
+                          {typeof testSummary.accuracy_percentage === "number" && (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-base-elevated border border-border-subtle text-emerald-400 font-semibold">
+                              Accuracy: {testSummary.accuracy_percentage}%
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
-                          <div className="text-content-secondary text-[11px]">True Negative (Normal Clean)</div>
-                          <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">
-                            {testSummary.confusion_matrix.tn.toLocaleString()}
+                      {/* Binary Mode: Preserved 4 Confusion Matrix Metric Cards */}
+                      {"tp" in testSummary.confusion_matrix && typeof testSummary.confusion_matrix.tp === "number" ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                          <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                            <div className="text-content-secondary text-[11px]">True Negative (Normal Clean)</div>
+                            <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">
+                              {(testSummary.confusion_matrix.tn ?? 0).toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-content-tertiary mt-0.5">Correctly verified benign</div>
                           </div>
-                          <div className="text-[10px] text-content-tertiary mt-0.5">Correctly verified benign</div>
+                          <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                            <div className="text-content-secondary text-[11px]">False Positive (False Alarm)</div>
+                            <div className="text-lg font-bold text-amber-400 font-mono mt-0.5">
+                              {(testSummary.confusion_matrix.fp ?? 0).toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-content-tertiary mt-0.5">
+                              FPR = {testSummary.confusion_matrix.fpr_percentage ?? 0}%
+                            </div>
+                          </div>
+                          <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                            <div className="text-content-secondary text-[11px]">False Negative (Missed Attack)</div>
+                            <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
+                              {(testSummary.confusion_matrix.fn ?? 0).toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-content-tertiary mt-0.5">
+                              FNR = {testSummary.confusion_matrix.fnr_percentage ?? 0}%
+                            </div>
+                          </div>
+                          <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
+                            <div className="text-content-secondary text-[11px]">True Positive (Threat Stopped)</div>
+                            <div className="text-lg font-bold text-brand font-mono mt-0.5">
+                              {(testSummary.confusion_matrix.tp ?? 0).toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-content-tertiary mt-0.5">
+                              Recall = {(((testSummary.confusion_matrix.tp ?? 0) / Math.max(1, (testSummary.confusion_matrix.tp ?? 0) + (testSummary.confusion_matrix.fn ?? 0))) * 100).toFixed(1)}%
+                            </div>
+                          </div>
                         </div>
-                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
-                          <div className="text-content-secondary text-[11px]">False Positive (False Alarm)</div>
-                          <div className="text-lg font-bold text-amber-400 font-mono mt-0.5">
-                            {testSummary.confusion_matrix.fp.toLocaleString()}
+                      ) : "matrix" in testSummary.confusion_matrix && Array.isArray(testSummary.confusion_matrix.matrix) ? (
+                        /* Multiclass Mode: Actual N x N Contingency Matrix with Class Labels */
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center justify-between text-xs gap-2 text-content-secondary">
+                            <span>
+                              Contingency Matrix (<strong>{testSummary.confusion_matrix.labels?.length ?? 0} × {testSummary.confusion_matrix.labels?.length ?? 0}</strong> classes) · Rows = Actual Ground Truth, Columns = Predicted Class
+                            </span>
+                            {typeof testSummary.confusion_matrix.benign_fpr_percentage === "number" && (
+                              <span className="text-[11px] font-mono">
+                                Benign Traffic FPR: <strong className="text-content-primary">{testSummary.confusion_matrix.benign_fpr_percentage}%</strong>
+                              </span>
+                            )}
                           </div>
-                          <div className="text-[10px] text-content-tertiary mt-0.5">
-                            FPR = {testSummary.confusion_matrix.fpr_percentage}%
+                          <div className="overflow-x-auto border border-border-subtle rounded-lg bg-base-elevated/30">
+                            <table className="w-full text-[11px] text-center border-collapse">
+                              <thead>
+                                <tr className="border-b border-border-subtle bg-base-elevated/60 text-content-secondary font-medium">
+                                  <th className="py-2 px-3 text-left font-semibold text-content-primary border-r border-border-subtle whitespace-nowrap">
+                                    Actual \ Predicted
+                                  </th>
+                                  {testSummary.confusion_matrix.labels.map((lbl: string, colIdx: number) => (
+                                    <th key={colIdx} className="py-2 px-2.5 font-mono whitespace-nowrap min-w-[70px]">
+                                      {lbl}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border-subtle/50 font-mono">
+                                {testSummary.confusion_matrix.matrix.map((row: number[], rowIdx: number) => {
+                                  const rowLabel = testSummary.confusion_matrix && "labels" in testSummary.confusion_matrix && testSummary.confusion_matrix.labels ? testSummary.confusion_matrix.labels[rowIdx] ?? `Class ${rowIdx}` : `Class ${rowIdx}`;
+                                  const rowTotal = row.reduce((sum, val) => sum + (val || 0), 0);
+                                  return (
+                                    <tr key={rowIdx} className="hover:bg-base-elevated/50 transition-colors">
+                                      <td className="py-1.5 px-3 text-left font-medium text-content-primary bg-base-elevated/40 border-r border-border-subtle whitespace-nowrap">
+                                        {rowLabel}
+                                        <span className="text-[10px] text-content-tertiary ml-1 font-normal">
+                                          (n={rowTotal.toLocaleString()})
+                                        </span>
+                                      </td>
+                                      {row.map((val: number, colIdx: number) => {
+                                        const isDiagonal = rowIdx === colIdx;
+                                        return (
+                                          <td
+                                            key={colIdx}
+                                            className={`py-1.5 px-2 tabular-nums ${
+                                              isDiagonal
+                                                ? val > 0
+                                                  ? "bg-emerald-500/15 text-emerald-300 font-bold"
+                                                  : "text-content-tertiary"
+                                                : val > 0
+                                                ? "bg-rose-500/10 text-rose-300 font-medium"
+                                                : "text-content-tertiary/40"
+                                            }`}
+                                          >
+                                            {typeof val === "number" ? val.toLocaleString() : "0"}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-content-tertiary pt-1">
+                            <div>
+                              * Green diagonal cells indicate correct classifications. Red off-diagonal cells represent misclassifications.
+                            </div>
+                            <div>
+                              OvR Macro FPR = Unweighted mean of One-vs-Rest False Positive Rates across all classes.
+                            </div>
                           </div>
                         </div>
-                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
-                          <div className="text-content-secondary text-[11px]">False Negative (Missed Attack)</div>
-                          <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
-                            {testSummary.confusion_matrix.fn.toLocaleString()}
-                          </div>
-                          <div className="text-[10px] text-content-tertiary mt-0.5">
-                            FNR = {testSummary.confusion_matrix.fnr_percentage}%
-                          </div>
-                        </div>
-                        <div className="p-3 rounded bg-base-elevated/70 border border-border-subtle text-center">
-                          <div className="text-content-secondary text-[11px]">True Positive (Threat Stopped)</div>
-                          <div className="text-lg font-bold text-brand font-mono mt-0.5">
-                            {testSummary.confusion_matrix.tp.toLocaleString()}
-                          </div>
-                          <div className="text-[10px] text-content-tertiary mt-0.5">
-                            Recall = {(((testSummary.confusion_matrix.tp) / Math.max(1, testSummary.confusion_matrix.tp + testSummary.confusion_matrix.fn)) * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -1560,7 +1679,7 @@ export default function DevrakshakDashboard() {
                   <span className="text-xs text-content-secondary">
                     {testSummary ? (
                       <>
-                        Evaluated <span className="font-semibold text-content-primary tabular-nums font-mono">{testSummary.total_samples_tested.toLocaleString()}</span> flows · Showing first <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span>
+                        Evaluated <span className="font-semibold text-content-primary tabular-nums font-mono">{(testSummary.total_samples_tested ?? 0).toLocaleString()}</span> flows · Showing first <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span>
                       </>
                     ) : (
                       <>Showing <span className="tabular-nums font-mono">{filteredTrafficRecords.length}</span> records</>
@@ -1848,13 +1967,14 @@ export default function DevrakshakDashboard() {
                         <th className="py-2 px-3">Model</th>
                         <th className="py-2 px-3">Accuracy</th>
                         <th className="py-2 px-3">Macro F1</th>
+                        <th className="py-2 px-3">FPR</th>
                         <th className="py-2 px-3">Latency</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-subtle">
                       {runs.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-6 text-center text-content-tertiary">
+                          <td colSpan={8} className="py-6 text-center text-content-tertiary">
                             No historical runs recorded in database yet.
                           </td>
                         </tr>
@@ -1869,6 +1989,9 @@ export default function DevrakshakDashboard() {
                             <td className="py-2 px-3 text-content-primary">{r.model_name}</td>
                             <td className="py-2 px-3 text-content-primary tabular-nums font-mono">{(r.accuracy * 100).toFixed(2)}%</td>
                             <td className="py-2 px-3 text-brand tabular-nums font-mono">{(r.macro_f1 * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-content-primary tabular-nums font-mono">
+                              {typeof r.false_positive_rate === "number" ? `${(r.false_positive_rate * 100).toFixed(2)}%` : "—"}
+                            </td>
                             <td className="py-2 px-3 text-content-tertiary">
                               <span className="tabular-nums font-mono">{r.inference_latency_ms_per_sample}</span> ms
                             </td>
