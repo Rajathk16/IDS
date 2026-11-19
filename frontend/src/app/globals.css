@@ -6,29 +6,29 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-base: #090d16;
-  --color-bg-surface: #0f1523;
-  --color-bg-elevated: #151d30;
-  --color-bg-hover: #1b263e;
+  --color-bg-base: #080c0a;
+  --color-bg-surface: #0e1412;
+  --color-bg-elevated: #151d1a;
+  --color-bg-hover: #1b2622;
 
-  --color-border-subtle: #1c2638;
-  --color-border-strong: #2a374f;
+  --color-border-subtle: #1a2620;
+  --color-border-strong: #24362d;
 
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-tertiary: #60728c;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
 
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-accent-muted: #1e3a8a;
+  --color-accent: #00e676;
+  --color-accent-hover: #00c864;
+  --color-accent-muted: rgba(0, 230, 118, 0.15);
 
   --color-status-success: #10b981;
   --color-status-warning: #f59e0b;
   --color-status-danger: #ef4444;
   --color-status-info: #06b6d4;
-  --color-status-purple: #7c3aed;
+  --color-status-purple: #a855f7;
 
-  --color-toast-success-bg: #0b291e;
+  --color-toast-success-bg: #09261a;
   --color-toast-success-border: rgba(16, 185, 129, 0.4);
   --color-toast-success-text: #a7f3d0;
 
@@ -36,9 +36,9 @@
   --color-toast-error-border: rgba(239, 68, 68, 0.4);
   --color-toast-error-text: #fecdd3;
 
-  --color-toast-info-bg: #0f1f3d;
-  --color-toast-info-border: rgba(37, 99, 235, 0.4);
-  --color-toast-info-text: #bfdbfe;
+  --color-toast-info-bg: #0d221c;
+  --color-toast-info-border: rgba(0, 230, 118, 0.4);
+  --color-toast-info-text: #bbf7d0;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
