@@ -24,6 +24,7 @@ from src.data.preprocess import IoTDataPreprocessor
 from src.data.split import split_dataset
 from src.data.taxonomy import map_to_binary, map_to_category
 from src.detection.event_store import EventStore
+from src.training.calibrate import calibrate_decision_threshold
 from src.training.evaluate import (
     evaluate_predictions,
     measure_inference_latency,
@@ -267,10 +268,20 @@ def train_model(
             df_raw[actual_target] = df_raw[actual_target].astype(str).apply(map_to_category)
 
     # 2. Split dataset with leakage resistance safeguards
-    df_train, df_test, _ = split_dataset(
+    # Reserve 10% of train for threshold calibration (val set, unseen by classifier)
+    df_train_full, df_test, _ = split_dataset(
         df_raw,
         target_column=actual_target,
         test_size=settings.test_size,
+        val_size=0.0,
+        random_seed=random_seed,
+        stratify=True
+    )
+    # Carve 10% validation set from training data for threshold calibration
+    df_train, df_val, _ = split_dataset(
+        df_train_full,
+        target_column=actual_target,
+        test_size=0.10,   # 10% of train becomes val
         val_size=0.0,
         random_seed=random_seed,
         stratify=True
@@ -334,6 +345,31 @@ def train_model(
         inference_latency_ms=latency_ms
     )
 
+    # 7b. Threshold calibration on held-out validation set (binary only)
+    # Build a temporary bundle for calibration so we can call predict_proba via the full pipeline
+    _cal_bundle_tmp = TrainedModelBundle(
+        model_name=model_name,
+        task_type=task_type,
+        preprocessor=preprocessor,
+        selector=selector,
+        classifier=clf,
+        labels=classes_list,
+        metadata={}
+    )
+    try:
+        X_val_raw, y_val_raw = preprocessor.extract_features_and_target(df_val)
+        calibration_result = calibrate_decision_threshold(_cal_bundle_tmp, X_val_raw, y_val_raw)
+        logger.info(
+            f"Threshold calibration complete. Recommended threshold (5% FPR target): "
+            f"{calibration_result.get('recommended', 0.50)}"
+        )
+    except Exception as _cal_err:
+        logger.warning(f"Threshold calibration failed (non-fatal): {_cal_err}")
+        calibration_result = {
+            "sweep": [], "recommended": 0.50, "targets": {},
+            "note": f"Calibration failed: {_cal_err}"
+        }
+
     # 8. Save Metrics & Plots
     metrics_path = save_metrics_json(eval_report, run_id)
     plot_path = plot_and_save_confusion_matrix(eval_report.confusion_matrix, classes_list, run_id)
@@ -358,6 +394,9 @@ def train_model(
         "class_weight": use_class_weight,
         "accuracy": eval_report.accuracy,
         "macro_f1": eval_report.macro_f1,
+        "false_positive_rate": eval_report.false_positive_rate,
+        "calibration": calibration_result,
+        "calibrated_threshold": calibration_result.get("recommended", 0.50),
     }
 
     model_file = settings.model_dir / f"{run_id}.joblib"

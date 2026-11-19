@@ -83,7 +83,8 @@ def _run_training_job_worker(
             "features_selected": bundle.selected_features,
             "labels": bundle.labels,
             "accuracy": run.accuracy,
-            "macro_f1": run.macro_f1
+            "macro_f1": run.macro_f1,
+            "false_positive_rate": run.false_positive_rate
         })
         logger.info(f"Background training job {job_id} completed successfully in {elapsed}s.")
     except Exception as exc:
@@ -393,7 +394,11 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
             })
 
         elif path == "/api/models":
-            saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), reverse=True)
+            saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), key=lambda p: p.stat().st_mtime, reverse=True)
+            runs = engine.list_runs(limit=100)
+            run_by_name = {Path(r.model_path).name: r for r in runs if r.model_path}
+            run_by_path = {str(Path(r.model_path).resolve()): r for r in runs if r.model_path}
+
             models_list = []
             for m in saved_models:
                 sz_kb = round(m.stat().st_size / 1024, 1)
@@ -403,6 +408,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 is_active = (engine.active_model_bundle and engine.active_model_bundle.model_path == str(m)) or (
                     not engine.active_model_bundle and saved_models and saved_models[0] == m
                 )
+                run_match = run_by_name.get(m.name) or run_by_path.get(str(m.resolve()))
                 models_list.append({
                     "name": m.name,
                     "path": str(m),
@@ -410,7 +416,10 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     "modified": mtime,
                     "task": task,
                     "algorithm": algo,
-                    "is_active": bool(is_active)
+                    "is_active": bool(is_active),
+                    "accuracy": run_match.accuracy if run_match else None,
+                    "macro_f1": run_match.macro_f1 if run_match else None,
+                    "false_positive_rate": run_match.false_positive_rate if run_match else None,
                 })
 
             self._send_json({
@@ -577,26 +586,70 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         self._send_error_json(f"Dataset file does not exist: {file_path_str}", status=404)
                         return
 
-                model_path = Path(model_path_str) if model_path_str else None
-                if model_path and not model_path.is_absolute() and not model_path.exists():
-                    model_path = (PROJECT_ROOT / model_path).resolve()
-
-                # Load predictor safely with fallback
+                # Load predictor safely with robust resolution
                 t_start = time.perf_counter()
                 predictor = None
-                if model_path and model_path.exists():
-                    try:
-                        predictor = OfflinePredictor(model_path)
-                    except Exception as err:
-                        logger.warning(f"Could not load requested model {model_path}: {err}")
 
+                if model_path_str:
+                    # 1. Check if model_path_str matches the currently active in-memory bundle
+                    if engine.active_model_bundle and (
+                        model_path_str == engine.active_model_bundle.model_path or
+                        model_path_str == engine.active_model_bundle.model_name or
+                        Path(model_path_str).name == Path(engine.active_model_bundle.model_path or "").name
+                    ):
+                        try:
+                            predictor = OfflinePredictor(engine.active_model_bundle)
+                        except Exception as err:
+                            logger.warning(f"Could not use active bundle for '{model_path_str}': {err}")
+
+                    # 2. Check candidate filesystem paths if not already loaded from active bundle
+                    if predictor is None:
+                        cand_paths = [
+                            Path(model_path_str),
+                            (PROJECT_ROOT / model_path_str),
+                            (engine.settings.model_dir / model_path_str),
+                            (engine.settings.model_dir / f"{model_path_str}.joblib"),
+                        ]
+                        resolved_path = None
+                        for cp in cand_paths:
+                            if cp.is_file():
+                                resolved_path = cp.resolve()
+                                break
+
+                        if resolved_path:
+                            try:
+                                predictor = OfflinePredictor(resolved_path)
+                            except Exception as err:
+                                logger.error(f"Error loading model file {resolved_path}: {err}", exc_info=True)
+                                self._send_error_json(
+                                    f"Failed to load requested model file '{resolved_path.name}': {err}",
+                                    status=500
+                                )
+                                return
+                        else:
+                            self._send_error_json(
+                                f"Requested model '{model_path_str}' could not be found. "
+                                f"Please select an existing model from the models list or train a new one.",
+                                status=404
+                            )
+                            return
+
+                # If no model specified or not yet resolved, use active bundle or latest saved model
                 if predictor is None:
-                    if engine.active_model_bundle and Path(engine.active_model_bundle).exists():
-                        predictor = OfflinePredictor(engine.active_model_bundle)
-                    else:
-                        saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), reverse=True)
+                    if engine.active_model_bundle:
+                        try:
+                            predictor = OfflinePredictor(engine.active_model_bundle)
+                        except Exception as err:
+                            logger.warning(f"Could not initialize predictor from active bundle: {err}")
+
+                    if predictor is None:
+                        saved_models = sorted(list(engine.settings.model_dir.glob("*.joblib")), key=lambda p: p.stat().st_mtime, reverse=True)
                         if saved_models:
-                            predictor = OfflinePredictor(saved_models[0])
+                            try:
+                                predictor = OfflinePredictor(saved_models[0])
+                            except Exception as err:
+                                self._send_error_json(f"Failed to load latest saved model '{saved_models[0].name}': {err}", status=500)
+                                return
                         else:
                             self._send_error_json("No trained model bundle available. Please run training first.", status=400)
                             return
@@ -636,6 +689,8 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                 correct_count = 0
                 has_ground_truth = (ground_truth_raw is not None)
                 cm_data = None
+                fpr_val = None
+                fnr_val = None
 
                 if has_ground_truth:
                     if predictor.bundle.task_type == "binary":
@@ -650,7 +705,7 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         ground_truth_categories[gt] = ground_truth_categories.get(gt, 0) + 1
                     accuracy = round((correct_count / max(1, total_tested)) * 100.0, 2)
 
-                    # Binary confusion matrix metrics (TP, TN, FP, FN, FPR)
+                    # Confusion matrix metrics (TP, TN, FP, FN, FPR, FNR, Precision, Recall, F1)
                     if predictor.bundle.task_type == "binary":
                         tp = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "ATTACK" and is_atk])
                         fn = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "ATTACK" and not is_atk])
@@ -658,6 +713,9 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         fp = sum([1 for gt, is_atk in zip(ground_truth_mapped, df_result["is_attack"]) if gt.upper() == "BENIGN" and is_atk])
                         fpr_val = round((fp / max(1, fp + tn)) * 100.0, 2) if (fp + tn) > 0 else 0.0
                         fnr_val = round((fn / max(1, fn + tp)) * 100.0, 2) if (fn + tp) > 0 else 0.0
+                        prec_val = round((tp / max(1, tp + fp)) * 100.0, 2) if (tp + fp) > 0 else 0.0
+                        rec_val  = round((tp / max(1, tp + fn)) * 100.0, 2) if (tp + fn) > 0 else 0.0
+                        f1_val   = round((2 * prec_val * rec_val / max(0.0001, prec_val + rec_val)), 2) if (prec_val + rec_val) > 0 else 0.0
                         cm_data = {
                             "tp": tp,
                             "tn": tn,
@@ -665,13 +723,56 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                             "fn": fn,
                             "fpr_percentage": fpr_val,
                             "fnr_percentage": fnr_val,
+                            "precision_percentage": prec_val,
+                            "recall_percentage": rec_val,
+                            "f1_percentage": f1_val,
                             "attack_support": tp + fn,
                             "benign_support": tn + fp,
+                        }
+                    else:
+                        # Multiclass confusion matrix and one-vs-rest macro FPR
+                        mc_labels = list(predictor.bundle.labels)
+                        label_to_idx = {l.lower(): idx for idx, l in enumerate(mc_labels)}
+                        k_classes = len(mc_labels)
+                        cm_arr = np.zeros((k_classes, k_classes), dtype=int)
+                        for gt, pred in zip(ground_truth_mapped, df_result["predicted_label"]):
+                            g_idx = label_to_idx.get(str(gt).lower())
+                            p_idx = label_to_idx.get(str(pred).lower())
+                            if g_idx is not None and p_idx is not None:
+                                cm_arr[g_idx, p_idx] += 1
+
+                        total_s = int(np.sum(cm_arr))
+                        class_fprs = []
+                        for idx_c in range(k_classes):
+                            act_pos = int(np.sum(cm_arr[idx_c, :]))
+                            act_neg = total_s - act_pos
+                            fp_c = int(np.sum(cm_arr[:, idx_c])) - int(cm_arr[idx_c, idx_c])
+                            class_fprs.append(fp_c / max(1, act_neg) if act_neg > 0 else 0.0)
+                        macro_fpr = round(float(np.mean(class_fprs)) * 100.0, 2) if class_fprs else 0.0
+                        fpr_val = macro_fpr
+
+                        benign_idx = label_to_idx.get("benign")
+                        if benign_idx is not None:
+                            act_benign = int(np.sum(cm_arr[benign_idx, :]))
+                            tn_benign = int(cm_arr[benign_idx, benign_idx])
+                            fp_benign = act_benign - tn_benign
+                            benign_fpr = round((fp_benign / max(1, act_benign)) * 100.0, 2) if act_benign > 0 else 0.0
+                        else:
+                            benign_fpr = macro_fpr
+
+                        cm_data = {
+                            "fpr_percentage": macro_fpr,
+                            "macro_fpr_percentage": macro_fpr,
+                            "benign_fpr_percentage": benign_fpr,
+                            "labels": mc_labels,
+                            "matrix": cm_arr.tolist()
                         }
                 else:
                     ground_truth_mapped = ["Unknown"] * total_tested
                     matches = [None] * total_tested
                     accuracy = None
+                    fpr_val = None
+                    fnr_val = None
 
                 # Prepare top records for UI table display (first 200 rows)
                 display_limit = min(200, total_tested, len(events))
@@ -721,12 +822,22 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         "model_task": predictor.bundle.task_type,
                         "model_labels": predictor.bundle.labels,
                         "decision_threshold": decision_threshold,
+                        "calibrated_threshold": predictor.bundle.metadata.get("calibrated_threshold"),
+                        "calibration_note": predictor.bundle.metadata.get("calibration", {}).get("note") if predictor.bundle.metadata.get("calibration") else None,
                         "total_samples_tested": total_tested,
                         "records_displayed": display_limit,
                         "attacks_detected": attack_count,
                         "benign_detected": benign_count,
+                        "predicted_attack_rate": round(attack_count / max(1, total_tested) * 100.0, 2),
                         "has_ground_truth": has_ground_truth,
+                        "ground_truth_note": None if has_ground_truth else "No ground-truth labels found in dataset. FPR, FNR and confusion-matrix metrics are unavailable. 'predicted_attack_rate' is a prediction count, not an empirical FPR.",
                         "accuracy_percentage": accuracy,
+                        "false_positive_rate": round(fpr_val / 100.0, 4) if (has_ground_truth and cm_data and "fpr_percentage" in cm_data) else None,
+                        "fpr_percentage": cm_data.get("fpr_percentage") if (has_ground_truth and cm_data) else None,
+                        "fnr_percentage": cm_data.get("fnr_percentage") if (has_ground_truth and cm_data) else None,
+                        "precision_percentage": cm_data.get("precision_percentage") if (has_ground_truth and cm_data) else None,
+                        "recall_percentage": cm_data.get("recall_percentage") if (has_ground_truth and cm_data) else None,
+                        "f1_percentage": cm_data.get("f1_percentage") if (has_ground_truth and cm_data) else None,
                         "confusion_matrix": cm_data,
                         "correct_predictions": correct_count if has_ground_truth else None,
                         "misclassified": (total_tested - correct_count) if has_ground_truth else None,

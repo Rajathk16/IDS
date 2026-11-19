@@ -52,17 +52,43 @@ def evaluate_predictions(
     cm_list = [[int(val) for val in row] for row in cm]
 
     # Calculate False Positive Rate (FPR)
-    # For binary classification where 0=BENIGN and 1=ATTACK:
-    # FPR = FP / (FP + TN)
+    # Formula: FPR = FP / (FP + TN)
     fpr: Optional[float] = None
-    if task_type == "binary" and len(labels) == 2:
-        # Assuming label 0 is BENIGN and 1 is ATTACK
-        benign_idx = 0 if "benign" in str(labels[0]).lower() else 1
-        attack_idx = 1 - benign_idx
-        tn = cm[benign_idx, benign_idx]
-        fp = cm[benign_idx, attack_idx]
+    class_fprs: Dict[int, float] = {}
+    total_samples = int(np.sum(cm))
+
+    if task_type == "binary":
+        # Identify negative (benign) class and positive (attack) class
+        benign_idx = None
+        for i, lbl in enumerate(labels):
+            if "benign" in str(lbl).lower():
+                benign_idx = i
+                break
+        if benign_idx is None:
+            benign_idx = 0
+
+        tn = int(cm[benign_idx, benign_idx]) if cm.shape[0] > benign_idx else 0
+        fp = int(np.sum(cm[benign_idx, :])) - tn
         denom = fp + tn
         fpr = float(fp / denom) if denom > 0 else 0.0
+        class_fprs[benign_idx] = fpr
+        for i in range(len(labels)):
+            if i != benign_idx:
+                act_pos = int(np.sum(cm[i, :]))
+                act_neg = total_samples - act_pos
+                fp_i = int(np.sum(cm[:, i])) - int(cm[i, i])
+                class_fprs[i] = float(fp_i / act_neg) if act_neg > 0 else 0.0
+    else:
+        # Multiclass: one-vs-rest macro-average FPR across all classes
+        macro_fpr_list: List[float] = []
+        for i in range(len(labels)):
+            act_pos = int(np.sum(cm[i, :]))
+            act_neg = total_samples - act_pos
+            fp_i = int(np.sum(cm[:, i])) - int(cm[i, i])
+            class_fpr = float(fp_i / act_neg) if act_neg > 0 else 0.0
+            class_fprs[i] = class_fpr
+            macro_fpr_list.append(class_fpr)
+        fpr = float(np.mean(macro_fpr_list)) if macro_fpr_list else 0.0
 
     # Per-class metrics
     report_dict = classification_report(
@@ -75,13 +101,14 @@ def evaluate_predictions(
     )
 
     per_class: Dict[str, Dict[str, float]] = {}
-    for name in labels:
+    for i, name in enumerate(labels):
         if name in report_dict:
             per_class[name] = {
                 "precision": float(report_dict[name]["precision"]),
                 "recall": float(report_dict[name]["recall"]),
                 "f1-score": float(report_dict[name]["f1-score"]),
-                "support": float(report_dict[name]["support"])
+                "support": float(report_dict[name]["support"]),
+                "false_positive_rate": round(class_fprs.get(i, 0.0), 4)
             }
 
     # Imbalance warning check
