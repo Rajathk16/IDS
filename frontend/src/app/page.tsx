@@ -1932,7 +1932,7 @@ export default function DevrakshakDashboard() {
                     <span>Export Audit CSV</span>
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
                     <span className="text-content-secondary block">Binary Accuracy</span>
                     <span className="text-sm font-semibold text-content-primary tabular-nums font-mono">98.65% ± 0.01%</span>
@@ -1941,10 +1941,10 @@ export default function DevrakshakDashboard() {
                     <span className="text-content-secondary block">Binary Macro F1</span>
                     <span className="text-sm font-semibold text-brand tabular-nums font-mono">0.8359 ± 0.0011</span>
                   </div>
-                  <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
+                  {/* <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
                     <span className="text-content-secondary block">Raw Asymmetric FPR</span>
                     <span className="text-sm font-semibold text-amber-400 tabular-nums font-mono">45.85% (at 0.50)</span>
-                  </div>
+                  </div> */}
                   <div className="p-2.5 rounded bg-base-elevated border border-border-subtle">
                     <span className="text-content-secondary block">Calibrated FPR</span>
                     <span className="text-sm font-semibold text-emerald-400 tabular-nums font-mono">&lt; 15% (at 0.70)</span>
