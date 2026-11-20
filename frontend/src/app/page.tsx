@@ -26,6 +26,8 @@ import {
   ShieldAlert,
   Terminal,
   Info,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // Types matching Python REST API schemas
@@ -212,6 +214,25 @@ export default function DevrakshakDashboard() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  // Sync theme with document class and localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("devrakshak_theme") as "dark" | "light" | null;
+    if (saved === "light" || saved === "dark") {
+      setTheme(saved);
+      document.documentElement.classList.toggle("light", saved === "light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("devrakshak_theme", next);
+    document.documentElement.classList.toggle("light", next === "light");
+  };
 
   // Data states
   const [status, setStatus] = useState<StatusData | null>(null);
@@ -799,6 +820,26 @@ export default function DevrakshakDashboard() {
               aria-label="Refresh database telemetry"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-brand" : ""}`} />
+            </button>
+
+            {/* Theme Toggle Button (Light/Dark Mode) */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-subtle bg-base-elevated text-content-secondary hover:text-content-primary interactive-transition text-xs font-medium"
+              title={theme === "dark" ? "Switch to Light Mode (Blue & White)" : "Switch to Dark Mode"}
+              aria-label="Toggle theme mode"
+            >
+              {theme === "dark" ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span className="hidden md:inline">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-blue-600" />
+                  <span className="hidden md:inline">Dark</span>
+                </>
+              )}
             </button>
           </div>
         </header>
