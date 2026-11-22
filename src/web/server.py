@@ -86,6 +86,7 @@ def _run_training_job_worker(
             "precision": run.precision,
             "recall": run.recall,
             "macro_f1": run.macro_f1,
+            "inference_latency_ms_per_sample": run.inference_latency_ms_per_sample,
             "false_positive_rate": run.false_positive_rate
         })
         logger.info(f"Background training job {job_id} completed successfully in {elapsed}s.")
@@ -422,6 +423,9 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                     "accuracy": run_match.accuracy if run_match else None,
                     "macro_f1": run_match.macro_f1 if run_match else None,
                     "false_positive_rate": run_match.false_positive_rate if run_match else None,
+                    "inference_latency_ms_per_sample": (
+                        run_match.inference_latency_ms_per_sample if run_match else None
+                    ),
                 })
 
             self._send_json({
@@ -1148,4 +1152,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
