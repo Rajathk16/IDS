@@ -83,6 +83,8 @@ def _run_training_job_worker(
             "features_selected": bundle.selected_features,
             "labels": bundle.labels,
             "accuracy": run.accuracy,
+            "precision": run.precision,
+            "recall": run.recall,
             "macro_f1": run.macro_f1,
             "false_positive_rate": run.false_positive_rate
         })
@@ -760,10 +762,24 @@ class DevRakshakAPIHandler(SimpleHTTPRequestHandler):
                         else:
                             benign_fpr = macro_fpr
 
+                        # Multiclass macro precision and recall
+                        class_precs = []
+                        class_recs = []
+                        for idx_c in range(k_classes):
+                            tp_c = int(cm_arr[idx_c, idx_c])
+                            fp_c = int(np.sum(cm_arr[:, idx_c])) - tp_c
+                            fn_c = int(np.sum(cm_arr[idx_c, :])) - tp_c
+                            class_precs.append(tp_c / (tp_c + fp_c) if (tp_c + fp_c) > 0 else 0.0)
+                            class_recs.append(tp_c / (tp_c + fn_c) if (tp_c + fn_c) > 0 else 0.0)
+                        macro_prec = round(float(np.mean(class_precs)) * 100.0, 2) if class_precs else 0.0
+                        macro_rec = round(float(np.mean(class_recs)) * 100.0, 2) if class_recs else 0.0
+
                         cm_data = {
                             "fpr_percentage": macro_fpr,
                             "macro_fpr_percentage": macro_fpr,
                             "benign_fpr_percentage": benign_fpr,
+                            "precision_percentage": macro_prec,
+                            "recall_percentage": macro_rec,
                             "labels": mc_labels,
                             "matrix": cm_arr.tolist()
                         }

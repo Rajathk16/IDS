@@ -51,8 +51,7 @@ def evaluate_predictions(
     cm = confusion_matrix(y_true, y_pred, labels=range(len(labels)))
     cm_list = [[int(val) for val in row] for row in cm]
 
-    # Calculate False Positive Rate (FPR)
-    # Formula: FPR = FP / (FP + TN)
+    # Calculate False Positive Rate (FPR), Precision, and Recall
     fpr: Optional[float] = None
     class_fprs: Dict[int, float] = {}
     total_samples = int(np.sum(cm))
@@ -67,11 +66,21 @@ def evaluate_predictions(
         if benign_idx is None:
             benign_idx = 0
 
-        tn = int(cm[benign_idx, benign_idx]) if cm.shape[0] > benign_idx else 0
-        fp = int(np.sum(cm[benign_idx, :])) - tn
+        attack_idx = 1 if benign_idx == 0 else 0
+
+        tn = int(cm[benign_idx, benign_idx]) if cm.shape[0] > benign_idx and cm.shape[1] > benign_idx else 0
+        fp = int(np.sum(cm[benign_idx, :])) - tn if cm.shape[0] > benign_idx else 0
+        tp = int(cm[attack_idx, attack_idx]) if cm.shape[0] > attack_idx and cm.shape[1] > attack_idx else 0
+        fn = int(np.sum(cm[attack_idx, :])) - tp if cm.shape[0] > attack_idx else 0
+
         denom = fp + tn
         fpr = float(fp / denom) if denom > 0 else 0.0
         class_fprs[benign_idx] = fpr
+
+        # Strict binary formulas: Precision = TP / (TP + FP), Recall = TP / (TP + FN)
+        precision_calc = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+        recall_calc = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+
         for i in range(len(labels)):
             if i != benign_idx:
                 act_pos = int(np.sum(cm[i, :]))
@@ -89,6 +98,8 @@ def evaluate_predictions(
             class_fprs[i] = class_fpr
             macro_fpr_list.append(class_fpr)
         fpr = float(np.mean(macro_fpr_list)) if macro_fpr_list else 0.0
+        precision_calc = prec_macro
+        recall_calc = rec_macro
 
     # Per-class metrics
     report_dict = classification_report(
@@ -125,8 +136,8 @@ def evaluate_predictions(
         model_name=model_name,
         feature_selector=feature_selector,
         accuracy=round(acc, 4),
-        precision=round(prec_macro, 4),
-        recall=round(rec_macro, 4),
+        precision=round(precision_calc, 4),
+        recall=round(recall_calc, 4),
         macro_f1=round(f1_macro, 4),
         weighted_f1=round(f1_weighted, 4),
         false_positive_rate=round(fpr, 4) if fpr is not None else None,

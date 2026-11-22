@@ -187,6 +187,8 @@ interface TrainingRunItem {
   task_type: string;
   model_name: string;
   accuracy: number;
+  precision?: number;
+  recall?: number;
   macro_f1: number;
   weighted_f1: number;
   false_positive_rate?: number;
@@ -371,7 +373,12 @@ export default function DevrakshakDashboard() {
     try {
       const res = await fetch("/api/runs?limit=30");
       const data = await res.json();
-      if (data.success && Array.isArray(data.runs)) setRuns(data.runs);
+      if (data.success && Array.isArray(data.runs)) {
+        setRuns(data.runs);
+        if (!latestRun && data.runs.length > 0) {
+          setLatestRun(data.runs[0]);
+        }
+      }
     } catch (e) {
       console.error("fetchRuns error:", e);
     }
@@ -1893,7 +1900,7 @@ export default function DevrakshakDashboard() {
                     <CheckCircle2 className="w-4 h-4 text-status-success" />
                     Latest Run Output: <span className="font-mono">{latestRun.run_id}</span>
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
                     <div className="bg-base-elevated p-3 rounded border border-border-subtle">
                       <div className="text-[11px] text-content-secondary">Accuracy</div>
                       <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
@@ -1907,9 +1914,15 @@ export default function DevrakshakDashboard() {
                       </div>
                     </div>
                     <div className="bg-base-elevated p-3 rounded border border-border-subtle">
-                      <div className="text-[11px] text-content-secondary">Latency</div>
+                      <div className="text-[11px] text-content-secondary">Precision</div>
                       <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
-                        {latestRun.inference_latency_ms_per_sample} ms
+                        {typeof latestRun.precision === "number" ? `${(latestRun.precision * 100).toFixed(2)}%` : "—"}
+                      </div>
+                    </div>
+                    <div className="bg-base-elevated p-3 rounded border border-border-subtle">
+                      <div className="text-[11px] text-content-secondary">Recall</div>
+                      <div className="text-lg font-semibold text-content-primary mt-0.5 tabular-nums font-mono">
+                        {typeof latestRun.recall === "number" ? `${(latestRun.recall * 100).toFixed(2)}%` : "—"}
                       </div>
                     </div>
                     <div className="bg-base-elevated p-3 rounded border border-border-subtle">
